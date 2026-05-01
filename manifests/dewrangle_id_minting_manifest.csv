@@ -1,0 +1,5 @@
+fhirResourceType,descriptor,descriptorState
+ResearchStudy,KF test,ACTIVE
+Patient,test_pt_001,ACTIVE
+Specimen,test_bs_001,ACTIVE
+DoucmentReference,harmonized_test_001.txt,ACTIVE

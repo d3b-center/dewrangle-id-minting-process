@@ -1,0 +1,13 @@
+Fields,Required,Acceptable_type,Acceptable_values,Description,Example
+study_name,Yes,string,,Full descriptive name of the study.,Pediatric Brain Tumor Atlas
+program,Yes,string,,Program under which the study is conducted.,Kids First
+study_short_name,Yes,string,,Abbreviated name or acronym of the study.,PBTA
+investigator_name,Yes,string,,Full name of the principal investigator (PI) for the study.,John Smith
+institution,Yes,string,,Institution affiliated with the investigator or study.,Children's Hospital of Philadelphia
+release_status,Yes,string,,Indicates whether the study data is publicly available.,pre-release
+domain,Yes,string,,Scientific or clinical domain of the study.,Cancer
+short_code,Yes,string,,Unique short identifier for the study.,KF-EATF
+attribution,No,string,,Funding source or attribution statement for the study.,https://www.ncbi.nlm.nih.gov/projects/gap/cgi-bin/study.cgi?study_id=phs000465.v18.p7
+external_id,Yes,string,,Stable external accession identifier assigned by a data repository.,phs002161
+version,Yes,string,,Version of the study dataset or metadata release.,v18.p7
+data_access_authority,Yes,string,,Authority or system governing data access permissions.,dbGaP

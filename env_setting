@@ -1,0 +1,53 @@
+#! /bin/bash
+
+# dewrangle Variables
+export DEWRANGLE_TOKEN="Y2x0eDBmdjlrMDAwNDhzcjM0d3hoMTdscy4wYzExZGE5MTUyNmM2YmZhNjUzNGE5ZmUwMGNkYjNjZQ=="
+export DEWRANGLE_BASE_URL="https://dewrangle.com/"
+
+
+# D3b Warehouse Variables
+export D3B_WAREHOUSE_HOST="d3b-warehouse-aurora.cluster-cxxdzxepyea2.us-east-1.rds.amazonaws.com"
+export D3B_WAREHOUSE_PORT="5435"
+export D3B_WAREHOUSE_DB_NAME="postgres"
+export D3B_WAREHOUSE_DB_USER=""
+export D3B_WAREHOUSE_DB_USER_PW=""
+
+#########################################################
+###################### Production #######################
+#########################################################
+
+# # save_dewrangle_ids to dwh
+# export D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="src_dewrangle_identifiers"
+# export D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
+
+
+# # data transfer records to dwh
+# export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="src_dewrangle_identifiers"
+# export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
+
+
+#########################################################
+######################## TEST ###########################
+#########################################################
+# source study manifest dwh source
+export D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
+export D3B_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
+
+# source sample manifest dwh source
+export D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
+export D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE="src_sample_manifests"
+
+# source file manifest dwh source
+export D3B_WAREHOUSE_FILE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
+export D3B_WAREHOUSE_FILE_SOURCE_TABLE="src_file_manifests"
+
+# save_dewrangle_ids to dwh
+export D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="huangx_dev_schema_dgd_workflow"
+export D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
+
+# data transfer records to dwh
+export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="huangx_dev_schema_dgd_workflow"
+export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
+
+
+## dewrangle test-dewrangle-ids organization_id = 'T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA='
