@@ -148,8 +148,8 @@ def main():
     parser.add_argument("--type", required=True, help="manifest type: study or sample", choices=["study", "sample"])
 
     args = parser.parse_args()
-
-    if args.type == "study":
+    type = args.type.lower()
+    if type == "study":
         REQUIRED_FIELDS = study_required_fields
         source_schema = study_source_schema
         source_table = study_source_table
@@ -164,13 +164,13 @@ def main():
     # 1. Validate required fields + duplicate check
     validate_manifest(df, REQUIRED_FIELDS)
 
-    # 2. Connect to DB
+    # Connect to DB
     conn = connect_to_database()
 
-    # 3. Get table columns
+    # Get DB table columns
     table_columns = get_table_columns(conn, source_schema, source_table)
 
-    # 4. Report unmatched columns (manifest - table)
+    # Report unmatched columns (manifest - table)
     unmatched = [col for col in df.columns if col not in table_columns]
 
     if unmatched:
@@ -182,8 +182,42 @@ def main():
     # Keep only matching columns
     df = df[[col for col in df.columns if col in table_columns]]
 
-    # 5. Insert data
+    # Insert data into the DWH
     save_df_to_db(conn, df, source_schema, source_table, REQUIRED_FIELDS)
+
+    # Generate manifest for dewrangle ID minting
+    rows = []
+    if type == "study":
+        study_names = set(df['study_name'].dropna())
+        for name in study_names:
+            rows.append({
+                "fhirResourceType": "ResearchStudy",
+                "descriptor": str(name),
+                "descriptorState": "ACTIVE"
+            })
+
+    elif type == "sample":
+        patient_ids = set(df['case_id'].dropna())
+        specimen_ids = set(df['aliquot_id'].dropna())
+        for pid in patient_ids:
+            rows.append({
+                "fhirResourceType": "Patient",
+                "descriptor": str(pid),
+                "descriptorState": "ACTIVE"
+            })
+        for sid in specimen_ids:
+            rows.append({
+                "fhirResourceType": "Specimen",
+                "descriptor": str(sid),
+                "descriptorState": "ACTIVE"
+            })
+    else:
+        raise ValueError(f"❌ Invalid type: {type}")
+    
+    # Create DataFrame
+    output_df = pd.DataFrame(rows)
+    output_df.to_csv(f"{type}_metadata_for_id_minting.csv", index=False)
+    logger.info(f"✅ Generated {type}_metadata_for_id_minting.csv for dewrangle ID minting.")
 
     conn.close()
 

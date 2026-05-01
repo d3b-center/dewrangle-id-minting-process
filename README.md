@@ -2,9 +2,10 @@
 
 This repository supports the end-to-end **Dewrangle ID minting process** for studies, samples, and files, including metadata saved into the Data Warehouse (DWH) and generation of Dewrangle global identifiers.
 
----
+## Overview
+![Data Flow](docs/dewrangle-id-minting-process.jpg)
 
-## 1. Study Information Intake Process
+## 1. Study Intake Process
 
 ### 1.1 Save Study Metadata into the DWH
 
@@ -29,7 +30,7 @@ Output:
   - (test)  `huangx_dev_schema_dgd_workflow.src_study_manifests`
   - (prod)  `src_d3b_file_mgmt_manifests.src_study_manifests`
 - A study manifest for ID minting is generated:
-  - `study_id_minting.csv`
+  - `study_metadata_for_id_minting.csv`
 
 ### 1.2 Dewrangle Study ID Minting Process
 #### Step 1: Prepare ID minting manifest
@@ -76,6 +77,13 @@ source env_setting
 # save sample manifest
 python save_source_metadata.py --type sample --manifest sample_manifest.csv
 ```
+
+Output:
+- Study metadata is saved into the DWH
+  - (test)  `huangx_dev_schema_dgd_workflow.src_sample_manifests`
+  - (prod)  `src_d3b_file_mgmt_manifests.src_sample_manifests`
+- A study manifest for ID minting is generated:
+  - `sample_metadata_for_id_minting.csv`
 
 ### 2.2 Dewrangle Sample ID Minting Process
 
