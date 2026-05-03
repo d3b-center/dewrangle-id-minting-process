@@ -1,0 +1,6 @@
+study_id,case_id,sample_id,aliquot_id,is_proband,family_id,family_relationship,family_relationship_target_case_id,affected_status,diagnosis,analyte_type,composition,tissue_type,gender,race,ethnicity,sample_type,collection_date_time,age_at_event_days,tumor_descriptor,method_of_sample_procurement,species
+sd-a4xn4gjzq7,C003_test,7003_test,test_003,FALSE,,,,,,,,Tumor,Male,,,,,,,,
+sd-qghkpcmff4,T_001,test_003,test_003,FALSE,,,,,,,,,,,,,,,,,
+SD_1NNS3K8V,CHR18_1001,SM-LL9WB,SM-LL9WB,FALSE,CHR18_1001,,,TRUE,,DNA,Peripheral Whole Blood,Normal,Male,White,Not Hispanic or Latino,,,,,Not Reported,Homo sapiens
+SD_PREASA7S,21672,CG0018-9181,CG0018-9181,TRUE,664,,,TRUE,,DNA,Blood,Normal,Male,Not Reported,Not Reported,,,,,,Homo sapiens
+SD_PREASA7S,21672,CG0037-9151,CG0037-9151,TRUE,664,,,TRUE,,DNA,Peripheral Whole Blood,Normal,Male,Not Reported,Not Reported,,,,,Not Reported,Homo sapiens

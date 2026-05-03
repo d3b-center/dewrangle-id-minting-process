@@ -1,0 +1,10 @@
+fhirResourceType,descriptor,descriptorState
+Patient,T_001;sd-qghkpcmff4,ACTIVE
+Patient,CHR18_1001;SD_1NNS3K8V,ACTIVE
+Patient,C003_test;sd-a4xn4gjzq7,ACTIVE
+Patient,21672;SD_PREASA7S,ACTIVE
+Specimen,CG0018-9181;SD_PREASA7S,ACTIVE
+Specimen,SM-LL9WB;SD_1NNS3K8V,ACTIVE
+Specimen,test_003;sd-a4xn4gjzq7,ACTIVE
+Specimen,test_003;sd-qghkpcmff4,ACTIVE
+Specimen,CG0037-9151;SD_PREASA7S,ACTIVE

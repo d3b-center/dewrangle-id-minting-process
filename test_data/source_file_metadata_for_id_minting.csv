@@ -1,0 +1,7 @@
+study_id,file_name,dt_id,fhirResourceType,descriptor,descriptorState
+sd-a4xn4gjzq7,OPS-001/test_file.txt,OPS-001,DocumentReference,s3://test1_bucket/OPS-001/test_file.txt,ACTIVE
+sd-qghkpcmff4,OPS-002/test_cram.crai,OPS-002,DocumentReference,s3://test2_bucket/OPS-002/test_cram.crai,ACTIVE
+SD_1NNS3K8V,OPS-003/test_fastq.gz,OPS-003,DocumentReference,s3://test3_bucket/OPS-003/test_fastq.gz,ACTIVE
+SD_PREASA7S,OPS-004/test_file.bam,OPS-004,DocumentReference,s3://test4_bucket/OPS-004/test_file.bam,ACTIVE
+SD_PREASA7S,OPS-004/test_file.cram,OPS-004,DocumentReference,s3://test4_bucket/OPS-004/test_file.cram,ACTIVE
+SD_PREASA7S,OPS-004/test_file.cram.crai,OPS-004,DocumentReference,s3://test4_bucket/OPS-004/test_file.cram.crai,ACTIVE

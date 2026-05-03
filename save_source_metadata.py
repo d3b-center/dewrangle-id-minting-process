@@ -197,18 +197,23 @@ def main():
             })
 
     elif type == "sample":
-        patient_ids = set(df['case_id'].dropna())
-        specimen_ids = set(df['aliquot_id'].dropna())
-        for pid in patient_ids:
+        df_nonan = df.dropna(subset=['case_id', 'aliquot_id'])
+        patient_ids = set(zip(df_nonan['study_id'], df_nonan['case_id']))
+        specimen_ids = set(zip(df_nonan['study_id'], df_nonan['aliquot_id']))
+
+        # Add Patient resources
+        for study_id, pid in patient_ids:
             rows.append({
                 "fhirResourceType": "Patient",
                 "descriptor": str(pid),
+                "descriptor": f"{pid};{study_id}",  # optional: include study_id in descriptor
                 "descriptorState": "ACTIVE"
             })
-        for sid in specimen_ids:
+        # Add Specimen resources
+        for study_id, sid in specimen_ids:
             rows.append({
                 "fhirResourceType": "Specimen",
-                "descriptor": str(sid),
+                "descriptor": f"{sid};{study_id}",  # optional: include study_id in descriptor
                 "descriptorState": "ACTIVE"
             })
     else:

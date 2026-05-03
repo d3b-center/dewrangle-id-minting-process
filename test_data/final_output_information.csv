@@ -1,0 +1,7 @@
+"study_id","participant_global_id","biospecimen_global_id","file_global_id","case_id","sample_id","aliquot_id","analyte_type","tissue_type","experiment_strategy","file_s3_path"
+"SD_1NNS3K8V","pt-a3ejahhnep","bs-kanh7akzmt","dr-mg3pgpnh7d","CHR18_1001","SM-LL9WB","SM-LL9WB","DNA","Normal","WGS","s3://test3_bucket/OPS-003/test_fastq.gz"
+"sd-a4xn4gjzq7","pt-f8b4ej9kz4","bs-3cpgt7jfg4","dr-phrkpg3qdr","C003_test","7003_test","test_003",NULL,"Tumor","WGS","s3://test1_bucket/OPS-001/test_file.txt"
+"SD_PREASA7S","pt-mzqipaygk4","bs-6xt4gt7ghb","dr-k4ngbc6hie","21672","CG0018-9181","CG0018-9181","DNA","Normal","WGS","s3://test4_bucket/OPS-004/test_file.bam"
+"SD_PREASA7S","pt-mzqipaygk4","bs-n7jbhqjcg4","dr-xhe2zb27rx","21672","CG0037-9151","CG0037-9151","DNA","Normal","WGS","s3://test4_bucket/OPS-004/test_file.cram"
+"SD_PREASA7S","pt-mzqipaygk4","bs-n7jbhqjcg4","dr-yi6zwfg8tx","21672","CG0037-9151","CG0037-9151","DNA","Normal","WGS","s3://test4_bucket/OPS-004/test_file.cram.crai"
+"sd-qghkpcmff4","pt-jb7t9k2cma","bs-ad79mphzp6","dr-hnze4ead3x","T_001","test_003","test_003",NULL,NULL,"WGS","s3://test2_bucket/OPS-002/test_cram.crai"

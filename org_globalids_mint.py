@@ -531,7 +531,7 @@ def save_data_transfer_manpping(
         on=["fhirResourceType", "descriptor", "descriptorState"],
         how="inner"
     )
-    merged_df = merged_df[["file_name", "dt_id", "global_id"]]
+    merged_df = merged_df[["study_id","file_name", "dt_id", "global_id"]]
     save_df_to_db(conn, merged_df, schema_name, table_name, primary_key_cols)
 
 
@@ -541,18 +541,40 @@ def save_data_transfer_manpping(
 def parse_args():
     parser = argparse.ArgumentParser(description="Create and download org-level global IDs from Dewrangle.")
     parser.add_argument(
+        "--env",
+        choices=["prod", "qa"],
+        help="Environment to use (prod or qa). Determines default organization_id if not set explicitly."
+    )
+    parser.add_argument(
         "--organization_id",
-        default="T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ=",  # default Kids First organization ID for the ID minting
-        help="Dewrangle Organization ID (default: %(default)s)"
+        default=None,
+        help="Dewrangle Organization ID. Overrides --env default if provided."
     )
     parser.add_argument("--manifest", required=True, help="Path to input manifest CSV file")
     parser.add_argument("--save-dt-record", action="store_true", help="If set, save data transfer mapping record to DWH")
     parser.add_argument("--output_dir", default=None, help="Optional output directory for downloaded CSV")
-    return parser.parse_args()
+    
+    args = parser.parse_args()
+
+    # Set organization_id based on env if not explicitly provided
+    if args.organization_id:
+        org_message = f"🛠️ Using custom organization_id for ID minting: {args.organization_id}"
+    elif args.env == "prod":
+        args.organization_id = "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ=" # Dewrangle Kids First organization ID for the ID minting
+        org_message = "🚀 Using Kids First prod Dewrangle organization for ID minting"
+    elif args.env == "qa":
+        args.organization_id = "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=" # Dewrangle test-dewrangle-ids organization ID for the ID minting
+        org_message = "🧪 Using test-dewrangle-ids organization for ID minting"
+    else:
+        parser.error("Either --organization_id must be set or --env must be 'prod' or 'qa'.")
+    
+    args.org_message = org_message
+    return args
+
 
 def main():
     args = parse_args()
-
+    print(args.org_message)
     manifest_path = Path(args.manifest).resolve()
 
     # --- Step 1: Read and validate manifest ---
@@ -598,9 +620,7 @@ def main():
         job_id=job_id,
         output_dir = args.output_dir
     )
-    
-    # filepath = 'dewrangle-job-globalids-20260324-0413.csv'
-    
+
     # Step 7: Save to dewrangle ids to warehouse
     print(f"🗂️ Saving dewrangle IDs report to DB...")
     save_dewrangle_ids(conn, filepath)
