@@ -22,7 +22,7 @@ Create a manifest useing the study manifest template: [`manifests/study_manifest
 source env_setting
 
 # save study manifest
-python save_source_metadata.py --type study test_data/test_study_manifest.csv
+python source_metadata_transfer.py --type study test_data/test_study_manifest.csv
 ```
 
 Output:
@@ -109,7 +109,7 @@ Required fields:
 source env_setting
 
 # save sample manifest
-python save_source_metadata.py --type sample --manifest test_data/test_sample_manifest.csv
+python source_metadata_transfer.py --type sample --manifest test_data/test_sample_manifest.csv
 ```
 
 Output:
@@ -135,12 +135,14 @@ Example Logs:
 Use either:
 - Output from step 2.1, or
 - A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
-  - Paticipant ID minting: 
+  - **Paticipant ID minting:** 
     - `fhirResourceType = 'Patient'`
     - `descriptor = case_id || ';' || study_id`
-  - Biospecimen ID minting: 
+  - **Biospecimen ID minting: **
     - `ffhirResourceType = 'Specimen'`
     - `descriptor = aliquot_id || ';' || study_id`
+
+**⚠️ Note:** Include `study_id` in the descriptor to ensure the correct study can always be identified, especially when the same `case_id` or `aliquot_id` appears across different studies.
 
 #### Step 2: Run ID minting
 

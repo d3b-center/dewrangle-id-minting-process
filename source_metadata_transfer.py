@@ -72,12 +72,12 @@ def connect_to_database():
 # VALIDATION
 # ======================================
 def validate_manifest(df, REQUIRED_FIELDS):
-    # 1. Required fields
+    # Required fields
     missing = [col for col in REQUIRED_FIELDS if col not in df.columns]
     if missing:
         raise ValueError(f"❌ Input manifest missing required columns: {missing}")
 
-    # 2. Duplicate check (FAIL if exist)
+    # Duplicate check (FAIL if exist)
     dup_df = df[df.duplicated(subset=REQUIRED_FIELDS, keep=False)]
 
     if not dup_df.empty:
@@ -161,7 +161,7 @@ def main():
     # Load CSV
     df = pd.read_csv(args.manifest)
 
-    # 1. Validate required fields + duplicate check
+    # Validate required fields + duplicate check
     validate_manifest(df, REQUIRED_FIELDS)
 
     # Connect to DB
@@ -206,14 +206,14 @@ def main():
             rows.append({
                 "fhirResourceType": "Patient",
                 "descriptor": str(pid),
-                "descriptor": f"{pid};{study_id}",  # optional: include study_id in descriptor
+                "descriptor": f"{pid};{study_id}",
                 "descriptorState": "ACTIVE"
             })
         # Add Specimen resources
         for study_id, sid in specimen_ids:
             rows.append({
                 "fhirResourceType": "Specimen",
-                "descriptor": f"{sid};{study_id}",  # optional: include study_id in descriptor
+                "descriptor": f"{sid};{study_id}",
                 "descriptorState": "ACTIVE"
             })
     else:
