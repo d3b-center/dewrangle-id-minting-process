@@ -5,6 +5,13 @@ This repository supports the end-to-end **Dewrangle ID minting process** for stu
 ## Overview
 ![Data Flow](docs/dewrangle-id-minting-process.jpg)
 
+## Pre-setup
+Before running the workflow, ensure your D3b Data Warehouse credentials are configured in the `env_setting` file, then run:
+```bash
+# Load environment configuration
+source env_setting
+```
+
 ## 1. Study Intake Process
 
 ### 1.1 Save Study Metadata into the DWH
@@ -18,9 +25,6 @@ Create a manifest useing the study manifest template: [`manifests/study_manifest
 
 #### Step 2: Save study metadata into the DWH
 ```bash
-# load env config
-source env_setting
-
 # save study manifest
 python source_metadata_transfer.py --type study test_data/test_study_manifest.csv
 ```
@@ -35,7 +39,6 @@ Output:
 Example Logs:
 ```
 2026-05-03 03:59:26 | INFO | ✅ Insert 2 rows into huangx_dev_schema_dgd_workflow.src_study_manifests
-
 2026-05-03 03:59:26 | INFO | ✅ Generated study_metadata_for_id_minting.csv for dewrangle ID minting.
 ```
 
@@ -48,9 +51,6 @@ Use either:
 
 #### Step 2: Run Study ID Minting
 ```bash
-# load env config
-source env_setting
-
 # study id minting
 python org_globalids_mint.py --env qa --manifest study_metadata_for_id_minting.csv
 ```
@@ -71,18 +71,9 @@ Example Logs:
 ```
 🧪 Using test-dewrangle-ids organization for ID minting
 ✅ Manifest read successfully with 2 rows.
-🔗 Upload URL: https://dewrangle.com/api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/files/study_metadata_for_id_minting.csv
-🆔 Uploaded file ID: T3JnYW5pemF0aW9uRmlsZTowMTlkZWMxMC04YThlLTc1NWItYTU2MS0wOTQxNGQyMzE0MTU=
-✅ Uploaded file 'study_metadata_for_id_minting.csv' to organization successfully!
-🚀 Job submitted: Sm9iOmNtb3A5aTJ2ZTAwMGtsaDAxaXU1azAxZXg=
-Waiting for job to complete...
-✅ Job completed at: None
-🌐 Dewrangle job global-identifiers report URL:  https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtb3A5aTJ2ZTAwMGtsaDAxaXU1azAxZXg=
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
+...
+...
+...
 📥 Downloaded job global IDs report: /home/ubuntu/work/github/dewrangle-id-minting-process/data/dewrangle-job-globalids-20260503-0420.csv
 🗂️ Saving dewrangle IDs report to DB...
 ✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
@@ -105,9 +96,6 @@ Required fields:
 
 #### Step 2: Save sample metadata into the DWH
 ```bash
-# load env config
-source env_setting
-
 # save sample manifest
 python source_metadata_transfer.py --type sample --manifest test_data/test_sample_manifest.csv
 ```
@@ -124,7 +112,6 @@ Output:
 Example Logs:
 ```
 2026-05-03 04:33:05 | INFO | ✅ Insert 5 rows into huangx_dev_schema_dgd_workflow.src_sample_manifests
-
 2026-05-03 04:33:05 | INFO | ✅ Generated sample_metadata_for_id_minting.csv for dewrangle ID minting.
 ```
 
@@ -147,9 +134,6 @@ Use either:
 #### Step 2: Run ID minting
 
 ```bash
-# load env config
-source env_setting
-
 # sample id minting
 python org_globalids_mint.py --env qa --manifest sample_metadata_for_id_minting.csv
 ```
@@ -164,18 +148,9 @@ Example Logs:
 ```
 🧪 Using test-dewrangle-ids organization for ID minting
 ✅ Manifest read successfully with 9 rows.
-🔗 Upload URL: https://dewrangle.com/api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/files/sample_metadata_for_id_minting.csv
-🆔 Uploaded file ID: T3JnYW5pemF0aW9uRmlsZTowMTlkZWM0ZC0xOTUwLTc1MGUtOGVjNC1lYzM3NzY1NzFjMWE=
-✅ Uploaded file 'sample_metadata_for_id_minting.csv' to organization successfully!
-🚀 Job submitted: Sm9iOmNtb3BidjUzeTAwMG1saDAxa2xybnN0MDE=
-Waiting for job to complete...
-✅ Job completed at: None
-🌐 Dewrangle job global-identifiers report URL:  https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtb3BidjUzeTAwMG1saDAxa2xybnN0MDE=
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
+...
+...
+...
 📥 Downloaded job global IDs report: /home/ubuntu/work/github/dewrangle-id-minting-process/data/dewrangle-job-globalids-20260503-0526.csv
 🗂️ Saving dewrangle IDs report to DB...
 ✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
@@ -208,9 +183,6 @@ Output:
 #### Step 2: Run file ID minting
 
 ```bash
-# load env config
-source env_setting
-
 # source file id minting
 python org_globalids_mint.py --env qa --save-dt-record --manifest test_data/source_file_metadata_for_id_minting.csv 
 ```
@@ -232,18 +204,9 @@ Example Logs:
 ```
 🧪 Using test-dewrangle-ids organization for ID minting
 ✅ Manifest read successfully with 6 rows.
-🔗 Upload URL: https://dewrangle.com/api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/files/source_file_metadata_for_id_minting.csv
-🆔 Uploaded file ID: T3JnYW5pemF0aW9uRmlsZTowMTlkZWM2Yy1mMmJlLTc3NWEtOWZlYS1kNzRmMjBkZDhkMzk=
-✅ Uploaded file 'source_file_metadata_for_id_minting.csv' to organization successfully!
-🚀 Job submitted: Sm9iOmNtb3BkM3ZuejAwMG9saDAxc3NlbzduYmI=
-Waiting for job to complete...
-✅ Job completed at: None
-🌐 Dewrangle job global-identifiers report URL:  https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtb3BkM3ZuejAwMG9saDAxc3NlbzduYmI=
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
-⏳ Response empty. Waiting 5s...
+...
+...
+...
 📥 Downloaded job global IDs report: /home/ubuntu/work/github/dewrangle-id-minting-process/data/dewrangle-job-globalids-20260503-0601.csv
 🗂️ Saving dewrangle IDs report to DB...
 ✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
@@ -260,9 +223,6 @@ Waiting for job to complete...
 #### Step 2: Run ID minting
 
 ```bash
-# load env config
-source env_setting
-
 # harmonized file id minting
 python org_globalids_mint.py --env qa --manifest harmonized_file_id_minting.csv
 ```

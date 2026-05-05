@@ -48,6 +48,3 @@ export D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
 # data transfer records to dwh
 export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="huangx_dev_schema_dgd_workflow"
 export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
-
-
-## dewrangle test-dewrangle-ids organization_id = 'T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA='
