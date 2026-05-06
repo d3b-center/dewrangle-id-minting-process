@@ -13,25 +13,17 @@ source env_setting
 ```
 ## CBTN ID Minting Process
 This process is designed specifically for CBTN data. It assumes that participant and specimen metadata already exist in the Data Warehouse tables:
-* prod_access.participants
-* prod_access.specimen
+- `prod_access.participants`
+- `prod_access.specimen`
   
 ### Step 1: Prepare Input Manifest
 Create a manifest using the CBTN sample & participants template: [`manifests/cbtn_sample_participants.csv`](manifests/cbtn_sample_participants.csv)
 
 **Required fields:**
 
-- **Participant ID minting:**
-  - case_id
-
-- **Specimen ID minting:**
-  - sample_id
-  - aliquot_id
-
-- **Both participant + specimen:**
-  - case_id
-  - sample_id
-  - aliquot_id
+- **Participant ID minting:** case_id
+- **Specimen ID minting:** sample_id, aliquot_id
+- **Both participant + specimen:** case_id, sample_id, aliquot_id
   
 ### Step 2: Validate Inputs and Prepare ID Minting Manifest
 ```bash
@@ -41,14 +33,12 @@ python prepare_cbtn_samples_id_mint.py
 
 This step will:
 - Check whether participant and specimen records already exist in the DWH
-   - `prod_access.participants`
-   - `prod_access.specimen`
 - Check whether records already have minted IDs in the DWH
 - Generate manifests(if records exist):
-  - cbtn_participants_specimens_to_mint.csv
-  - cbtn_participants_specimens_minted_in_dwh.csv
-  - cbtn_participants_missing_in_dwh.csv
-  - cbtn_specimens_missing_in_dwh.csv
+  - cbtn_participants_specimens_to_mint.csv (ready for ID minting)
+  - cbtn_participants_specimens_minted_in_dwh.csv (alreay minted samples)
+  - cbtn_participants_missing_in_dwh.csv (case_id not found in the dwh)
+  - cbtn_specimens_missing_in_dwh.csv  (sample_id, aliquot_id not found in the dwh)
 
 ### Step 3: Run ID Minting
 Use either:
@@ -58,7 +48,9 @@ Use either:
   - Specimen: `descriptor = aliquot_id || ';' || study_id`
 
 ```bash
-python org_globalids_mint.py --env qa --manifest cbtn_participants_specimens_to_mint.csv
+python org_globalids_mint.py \
+--env qa \
+--manifest cbtn_participants_specimens_to_mint.csv
 ```
 
 | Argument | Description |
@@ -92,7 +84,8 @@ Create a manifest useing the study manifest template: [`manifests/study_manifest
 ##### Step 2: Save study metadata into the DWH
 ```bash
 # save study manifest
-python source_metadata_transfer.py --type study test_data/test_study_manifest.csv
+python source_metadata_transfer.py \
+--type study test_data/test_study_manifest.csv
 ```
 
 Output:
@@ -118,7 +111,9 @@ Use either:
 ##### Step 2: Run Study ID Minting
 ```bash
 # study id minting
-python org_globalids_mint.py --env qa --manifest study_metadata_for_id_minting.csv
+python org_globalids_mint.py \
+--env qa \
+--manifest study_metadata_for_id_minting.csv
 ```
 
 **Output**:
@@ -157,7 +152,9 @@ Required fields:
 ##### Step 2: Save sample metadata into the DWH
 ```bash
 # save sample manifest
-python source_metadata_transfer.py --type sample --manifest test_data/test_sample_manifest.csv
+python source_metadata_transfer.py \
+--type sample \
+--manifest test_data/test_sample_manifest.csv
 ```
 
 Output:
@@ -195,7 +192,9 @@ Use either:
 
 ```bash
 # sample id minting
-python org_globalids_mint.py --env qa --manifest sample_metadata_for_id_minting.csv
+python org_globalids_mint.py \
+--env qa \
+--manifest sample_metadata_for_id_minting.csv
 ```
 
 Output:
@@ -244,7 +243,10 @@ Output:
 
 ```bash
 # source file id minting
-python org_globalids_mint.py --env qa --save-dt-record --manifest test_data/source_file_metadata_for_id_minting.csv 
+python org_globalids_mint.py \
+--env qa \
+--save-dt-record \
+--manifest test_data/source_file_metadata_for_id_minting.csv
 ```
 
 | Argument | Description |
@@ -284,7 +286,9 @@ Example Logs:
 
 ```bash
 # harmonized file id minting
-python org_globalids_mint.py --env qa --manifest harmonized_file_id_minting.csv
+python org_globalids_mint.py \
+--env qa \
+--manifest harmonized_file_id_minting.csv
 ```
 
 Output:
