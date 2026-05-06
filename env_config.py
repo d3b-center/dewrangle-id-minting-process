@@ -45,6 +45,11 @@ config = {
                 "table": os.environ.get("D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
                 "primary_key_cols": ["study_id", "case_id", "sample_id", "aliquot_id"],
             },
+            "cbtn_samples": {
+                "schema": "prod_access",
+                "specimen_table": "specimen",
+                "participant_table": "participants",
+            },
         },
     },
 }

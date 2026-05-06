@@ -205,7 +205,6 @@ def main():
         for study_id, pid in patient_ids:
             rows.append({
                 "fhirResourceType": "Patient",
-                "descriptor": str(pid),
                 "descriptor": f"{pid};{study_id}",
                 "descriptorState": "ACTIVE"
             })
