@@ -27,7 +27,9 @@ Create a manifest using the CBTN sample & participants template: [`manifests/cbt
   
 ### Step 2: Validate Inputs and Prepare ID Minting Manifest
 ```bash
-python prepare_cbtn_samples_id_mint.py
+python  prepare_cbtn_samples_id_mint.py \
+	--manifest manifests/cbtn_sample_participants.csv \
+	--type both
 ```
 **Functionality**
 
