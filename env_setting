@@ -16,35 +16,42 @@ export D3B_WAREHOUSE_DB_USER_PW=""
 ###################### Production #######################
 #########################################################
 
-# # save_dewrangle_ids to dwh
-# export D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="src_dewrangle_identifiers"
-# export D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
+# source study manifest dwh source
+export PROD_D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA="src_d3b_file_mgmt_manifests"
+export PROD_D3B_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
 
+# source sample manifest dwh source
+export PROD_D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA="src_d3b_file_mgmt_manifests"
+export PROD_D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE="src_sample_manifests"
 
-# # data transfer records to dwh
-# export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="src_dewrangle_identifiers"
-# export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
+# save_dewrangle_ids to dwh
+export PROD_D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="src_dewrangle_identifiers"
+export PROD_D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
+
+# data transfer records to dwh
+export PROD_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="src_dewrangle_identifiers"
+export PROD_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
 
 
 #########################################################
 ######################## TEST ###########################
 #########################################################
 # source study manifest dwh source
-export D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
-export D3B_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
+export QA_D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
+export QA_D3B_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
 
 # source sample manifest dwh source
-export D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
-export D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE="src_sample_manifests"
+export QA_D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
+export QA_D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE="src_sample_manifests"
 
 # source file manifest dwh source
-export D3B_WAREHOUSE_FILE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
-export D3B_WAREHOUSE_FILE_SOURCE_TABLE="src_file_manifests"
+export QA_D3B_WAREHOUSE_FILE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
+export QA_D3B_WAREHOUSE_FILE_SOURCE_TABLE="src_file_manifests"
 
 # save_dewrangle_ids to dwh
-export D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="huangx_dev_schema_dgd_workflow"
-export D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
+export QA_D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="huangx_dev_schema_dgd_workflow"
+export QA_D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
 
 # data transfer records to dwh
-export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="huangx_dev_schema_dgd_workflow"
-export D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
+export QA_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="huangx_dev_schema_dgd_workflow"
+export QA_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"

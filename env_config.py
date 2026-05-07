@@ -22,28 +22,50 @@ config = {
             "db_port": os.environ.get("D3B_WAREHOUSE_PORT", "5432"),
             "db_name": os.environ.get("D3B_WAREHOUSE_DB_NAME", "postgres"),
             "db_user": os.environ.get("D3B_WAREHOUSE_DB_USER", "postgres"),
-            "db_password": os.environ.get(
-                "D3B_WAREHOUSE_DB_USER_PW", "postgres"
-            ),
-            "dewrangle_ids": {
+            "db_password": os.environ.get("D3B_WAREHOUSE_DB_USER_PW", "postgres"),
+            "qa": {
+                "dewrangle_ids": {
+                "schema": os.environ.get("QA_D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA"),
+                "table": os.environ.get("QA_D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE"),
+                "primary_key_cols": ["globalId", "studyGlobalId", "descriptor", "descriptorState"],
+                },
+                "data_transfer_file_mapping": {
+                    "schema": os.environ.get("QA_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA"),
+                    "table": os.environ.get("QA_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE"),
+                    "primary_key_cols": ["global_id"],
+                },
+                "source_study_metadata": {
+                    "schema": os.environ.get("QA_D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA"),
+                    "table": os.environ.get("QA_D3B_WAREHOUSE_STUDY_SOURCE_TABLE"),
+                    "primary_key_cols": ["study_name", "program"],
+                },
+                "source_sample_metadata": {
+                    "schema": os.environ.get("QA_D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA"),
+                    "table": os.environ.get("QA_D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
+                    "primary_key_cols": ["study_id", "case_id", "sample_id", "aliquot_id"],
+                }
+            },
+            "prod": {
+                "dewrangle_ids": {
                 "schema": os.environ.get("D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA"),
                 "table": os.environ.get("D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE"),
                 "primary_key_cols": ["globalId", "studyGlobalId", "descriptor", "descriptorState"],
-            },
-            "data_transfer_file_mapping": {
-                "schema": os.environ.get("D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA"),
-                "table": os.environ.get("D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE"),
-                "primary_key_cols": ["global_id"],
-            },
-            "source_study_metadata": {
-                "schema": os.environ.get("D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA"),
-                "table": os.environ.get("D3B_WAREHOUSE_STUDY_SOURCE_TABLE"),
-                "primary_key_cols": ["study_name", "program"],
-            },
-            "source_sample_metadata": {
-                "schema": os.environ.get("D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA"),
-                "table": os.environ.get("D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
-                "primary_key_cols": ["study_id", "case_id", "sample_id", "aliquot_id"],
+                },
+                "data_transfer_file_mapping": {
+                    "schema": os.environ.get("D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA"),
+                    "table": os.environ.get("D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE"),
+                    "primary_key_cols": ["global_id"],
+                },
+                "source_study_metadata": {
+                    "schema": os.environ.get("D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA"),
+                    "table": os.environ.get("D3B_WAREHOUSE_STUDY_SOURCE_TABLE"),
+                    "primary_key_cols": ["study_name", "program"],
+                },
+                "source_sample_metadata": {
+                    "schema": os.environ.get("D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA"),
+                    "table": os.environ.get("D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
+                    "primary_key_cols": ["study_id", "case_id", "sample_id", "aliquot_id"],
+                }
             },
             "cbtn_samples": {
                 "schema": "prod_access",

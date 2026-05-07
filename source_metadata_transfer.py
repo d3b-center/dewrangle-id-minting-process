@@ -1,4 +1,5 @@
 import argparse
+import time
 import sys
 import os
 import pandas as pd
@@ -6,6 +7,7 @@ import psycopg2
 from psycopg2.extras import execute_values
 from psycopg2 import OperationalError
 import logging
+from typing import List, Optional
 from pprint import pformat
 from env_config import config
 
@@ -17,27 +19,11 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
-# ======================================
-# ENV CONFIG
-# ======================================
-db_config = config["db"]["d3b_warehouse"]
-db_host = db_config["db_host"]
-db_name = db_config["db_name"]
-db_user = db_config["db_user"]
-db_password = db_config["db_password"]
-
-study_source_schema = db_config["source_study_metadata"]["schema"]
-study_source_table = db_config["source_study_metadata"]["table"]
-study_required_fields = db_config["source_study_metadata"]["primary_key_cols"]
-
-sample_source_schema = db_config["source_sample_metadata"]["schema"]
-sample_source_table = db_config["source_sample_metadata"]["table"]
-sample_required_fields = db_config["source_sample_metadata"]["primary_key_cols"]
 
 # ======================================
 # Database Helpers
 # ======================================
-def connect_to_database():
+def connect_to_database(db_host, db_name, db_user, db_password):
     db_config = {
         "host": db_host,
         "dbname": db_name,
@@ -67,7 +53,6 @@ def connect_to_database():
             f"{str(e)}\nConfig: {pformat(display)}"
         )
 
-
 # ======================================
 # VALIDATION
 # ======================================
@@ -87,6 +72,7 @@ def validate_manifest(df, REQUIRED_FIELDS):
             "❌ Duplicate records found based on required fields:\n"
             f"{dup_keys.to_string(index=False)}"
         )
+
 # ======================================
 # TABLE METADATA
 # ======================================
@@ -101,6 +87,35 @@ def get_table_columns(conn, schema_name, table_name):
         cur.execute(sql, (schema_name, table_name))
         return [row[0] for row in cur.fetchall()]
 
+
+def check_db_records_exist(
+    conn,  # Accept the existing connection
+    schema_name: str,
+    table_name: str,
+    df: pd.DataFrame,
+) -> list:
+    """
+    Check if already registered in the Dewrangle.
+    """
+    # Extract descriptors from DataFrame to compare
+    descriptors_to_check = list(set(df["descriptor"].dropna()))
+    if not descriptors_to_check:
+        return pd.DataFrame()  # Return empty DataFrame if no descriptors
+
+    descriptors_to_check_string = ", ".join([f"'{descriptor}'" for descriptor in descriptors_to_check])
+    query = f"""
+        select *
+        from {schema_name}.{table_name}
+        where descriptor in ({descriptors_to_check_string})
+    """
+    df_existing_rows = pd.read_sql(query, conn)
+
+    # If matching records exist, return them
+    if not df_existing_rows.empty:
+        return df_existing_rows
+    else:
+        return pd.DataFrame()
+    
 # ======================================
 # SAVE TO DB
 # ======================================
@@ -138,16 +153,39 @@ def save_df_to_db(conn, df, schema_name, table_name, primary_key_cols):
     finally:
         cur.close()
 
-
 # ======================================
 # MAIN
 # ======================================
 def main():
     parser = argparse.ArgumentParser(description="Insert manifest into data warehouse")
     parser.add_argument("--manifest", required=True, help="Path to manifest CSV")
+    parser.add_argument(
+        "--env",
+        choices=["prod", "qa"],
+        help="Environment to use (prod or qa)."
+    )
     parser.add_argument("--type", required=True, help="manifest type: study or sample", choices=["study", "sample"])
 
     args = parser.parse_args()
+
+    env_type = args.env
+    # ======================================
+    # ENV CONFIG
+    # ======================================
+    db_config = config["db"]["d3b_warehouse"]
+    db_host = db_config["db_host"]
+    db_name = db_config["db_name"]
+    db_user = db_config["db_user"]
+    db_password = db_config["db_password"]
+    
+    study_source_schema = db_config[env_type]["source_study_metadata"]["schema"]
+    study_source_table = db_config[env_type]["source_study_metadata"]["table"]
+    study_required_fields = db_config[env_type]["source_study_metadata"]["primary_key_cols"]
+
+    sample_source_schema = db_config[env_type]["source_sample_metadata"]["schema"]
+    sample_source_table = db_config[env_type]["source_sample_metadata"]["table"]
+    sample_required_fields = db_config[env_type]["source_sample_metadata"]["primary_key_cols"]
+    
     type = args.type.lower()
     if type == "study":
         REQUIRED_FIELDS = study_required_fields
@@ -165,7 +203,7 @@ def main():
     validate_manifest(df, REQUIRED_FIELDS)
 
     # Connect to DB
-    conn = connect_to_database()
+    conn = connect_to_database(db_host, db_name, db_user, db_password)
 
     # Get DB table columns
     table_columns = get_table_columns(conn, source_schema, source_table)
@@ -218,10 +256,29 @@ def main():
     else:
         raise ValueError(f"❌ Invalid type: {type}")
     
-    # Create DataFrame
     output_df = pd.DataFrame(rows)
-    output_df.to_csv(f"{type}_metadata_for_id_minting.csv", index=False)
-    logger.info(f"✅ Generated {type}_metadata_for_id_minting.csv for dewrangle ID minting.")
+    # --- Check if descriptors already exist ---
+    existing_rows = check_db_records_exist(
+        conn,
+        schema_name=db_config[env_type]["dewrangle_ids"]["schema"],
+        table_name=db_config[env_type]["dewrangle_ids"]["table"],
+        df=output_df,
+    )
+    if not existing_rows.empty:
+        existing_rows.to_csv(f"{type}_metadata_already_minted.csv", index=False)
+        logger.warning(
+            f"⚠️ Found {len(existing_rows)} descriptors already registered. "
+            f"See {type}_metadata_already_minted.csv"
+        )
+    
+    mint_df = output_df[~output_df["descriptor"].isin(existing_rows["descriptor"])]
+    if not mint_df.empty:
+        mint_df.to_csv(f"{type}_metadata_for_id_minting.csv", index=False)
+        logger.info(f"✅ Generated {type}_metadata_for_id_minting.csv for dewrangle ID minting.")
+    else:
+        logger.info(f"✅ No new descriptors to mint IDs.")
+    
+    logger.info(f"🎉 All completed!")
 
     conn.close()
 

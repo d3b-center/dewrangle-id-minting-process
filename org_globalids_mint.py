@@ -36,9 +36,7 @@ logger = logging.getLogger(__name__)
 TIMEOUT_INFINITY = -1
 CSV_CONTENT_TYPE = "text/csv"
 
-db_config = config["db"]["d3b_warehouse"]
 dewrangle_config = config["dewrangle"]
-
 DEWRANGLE_TOKEN = dewrangle_config["dev_token"]
 EXECUTION_TIMEOUT = dewrangle_config["client"]["execution_timeout"]
 
@@ -103,7 +101,6 @@ mutation GlobalIdentifierUpsert($input: GlobalIdentifierUpsertInput!) {
   }
 }
 """)
-
 
 # ======================================
 # HTTP Utility
@@ -175,7 +172,6 @@ def send_request(
         print(f"⏳ Response empty. Waiting {poll_interval}s...")
         time.sleep(poll_interval)
         waited += poll_interval
-
 
 # ======================================
 # Dewrangle Helpers
@@ -354,46 +350,38 @@ def upload_org_file(org_id, csv_path: Path):
 
     return file_id
 
-
 # ======================================
 # Database Helpers
 # ======================================
-def connect_to_database():
-    db_host = db_config["db_host"]
-    db_name = db_config["db_name"]
-    db_user = db_config["db_user"]
-    db_user_pw = db_config["db_password"]
+def connect_to_database(db_host, db_name, db_user, db_password):
+    db_config = {
+        "host": db_host,
+        "dbname": db_name,
+        "user": db_user,
+        "password": db_password,
+    }
 
-    if not all(
-        [db_host, db_name, db_user, db_user_pw]
-    ):
-        display = {}
-        for k, v in db_config.items():
-            if ("password" in k) and v:
-                display[k] = "*" * len(v)
-            else:
-                display[k] = v
+    # Mask password for display
+    display = {
+        k: ("*" * len(v) if k == "password" and v else v)
+        for k, v in db_config.items()
+    }
+
+    if not all(db_config.values()):
         raise ValueError(
             "❌ Not enough inputs to connect to database!\n"
             f"{pformat(display)}"
         )
 
-    # Connect to the database
     try:
-        conn = psycopg2.connect(
-            dbname=db_name,
-            user=db_user,
-            password=db_user_pw,
-            host=db_host
-        )
-        logger.info(f"✅ Successfully connected to database!")
+        conn = psycopg2.connect(**db_config)
         return conn
 
     except OperationalError as e:
-        # Handle connection errors
-        error_msg = f"❌ Failed to connect to the database: {str(e)}"
-        logger.error(error_msg)
-        sys.exit(1)
+        raise RuntimeError(
+            "❌ Failed to connect to database:\n"
+            f"{str(e)}\nConfig: {pformat(display)}"
+        )
 
 def check_db_records_exist(
     conn,  # Accept the existing connection
@@ -487,6 +475,7 @@ def save_df_to_db(
 def save_dewrangle_ids(
     conn,  # Accept connection as argument
     filepath: str,
+    dewrangle_ids_config,
 ):
     """
     Save generated Dewrangle IDs into warehouse table.
@@ -498,9 +487,9 @@ def save_dewrangle_ids(
         print(f"✅ Nothing new to update in db. Aborting")
         return
 
-    schema_name = db_config["dewrangle_ids"]["schema"]
-    table_name = db_config["dewrangle_ids"]["table"]
-    primary_key_cols = db_config["dewrangle_ids"]["primary_key_cols"]
+    schema_name = dewrangle_ids_config["schema"]
+    table_name = dewrangle_ids_config["table"]
+    primary_key_cols = dewrangle_ids_config["primary_key_cols"]
 
     # Update the dewrangle identifiers table
     save_df_to_db(conn, df, schema_name, table_name, primary_key_cols)
@@ -509,6 +498,7 @@ def save_data_transfer_manpping(
     conn,  # Accept connection as argument
     filepath: str,
     manifest_df: pd.DataFrame,
+    data_transfer_manpping_config,
 ):
     """
     Save mapping between Dewrangle global IDs and Data Transfer files.
@@ -519,9 +509,9 @@ def save_data_transfer_manpping(
         print(f"✅ Nothing new to update in db. Aborting")
         return
     df = df.fillna('')
-    schema_name = db_config["data_transfer_file_mapping"]["schema"]
-    table_name = db_config["data_transfer_file_mapping"]["table"]
-    primary_key_cols = db_config["data_transfer_file_mapping"]["primary_key_cols"]
+    schema_name = data_transfer_manpping_config["schema"]
+    table_name = data_transfer_manpping_config["table"]
+    primary_key_cols = data_transfer_manpping_config["primary_key_cols"]
 
     # Update the dewrangle identifiers table
     df = df.rename(columns={"globalId": "global_id"})
@@ -543,7 +533,7 @@ def parse_args():
     parser.add_argument(
         "--env",
         choices=["prod", "qa"],
-        help="Environment to use (prod or qa). Determines default organization_id if not set explicitly."
+        help="Environment to use (prod or qa). Determines default schema and organization_id if not set explicitly."
     )
     parser.add_argument(
         "--organization_id",
@@ -562,12 +552,14 @@ def parse_args():
     elif args.env == "prod":
         args.organization_id = "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ=" # Dewrangle Kids First organization ID for the ID minting
         org_message = "🚀 Using Kids First prod Dewrangle organization for ID minting"
+        db_config = config["db"]["d3b_warehouse"]["prod"]  # Use prod DB config for prod env
     elif args.env == "qa":
         args.organization_id = "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=" # Dewrangle test-dewrangle-ids organization ID for the ID minting
         org_message = "🧪 Using test-dewrangle-ids organization for ID minting"
+        db_config = config["db"]["d3b_warehouse"]["qa"]  # Use qa DB config for qa env
     else:
         parser.error("Either --organization_id must be set or --env must be 'prod' or 'qa'.")
-    
+    args.db_config = db_config
     args.org_message = org_message
     return args
 
@@ -587,13 +579,18 @@ def main():
     print(f"✅ Manifest read successfully with {manifest_df.shape[0]} rows.")
 
     # --- Step 2: Connect to the database once
-    conn = connect_to_database()
+    conn = connect_to_database(
+        db_host=args.db_config["db_host"],
+        db_name=args.db_config["db_name"],
+        db_user=args.db_config["db_user"],
+        db_password=args.db_config["db_password"]
+    )
 
     # --- Step 3: check if descriptors already exist ---
     existing_rows = check_db_records_exist(
         conn,  # Pass the connection
-        schema_name=db_config["dewrangle_ids"]["schema"],
-        table_name=db_config["dewrangle_ids"]["table"],
+        schema_name=args.db_config["dewrangle_ids"]["schema"],
+        table_name=args.db_config["dewrangle_ids"]["table"],
         df=manifest_df,
         output_dir=args.output_dir
     )
@@ -623,7 +620,8 @@ def main():
 
     # Step 7: Save to dewrangle ids to warehouse
     print(f"🗂️ Saving dewrangle IDs report to DB...")
-    save_dewrangle_ids(conn, filepath)
+    dewrangle_ids_config = args.db_config["dewrangle_ids"]
+    save_dewrangle_ids(conn, filepath, dewrangle_ids_config)
 
      # Step 7: Optionally save Data Transfer mapping
     if args.save_dt_record:
@@ -633,7 +631,8 @@ def main():
             raise ValueError(f"Manifest missing columns for saving DT records: {missing}")
         
         print(f"🗂️ Saving Data Transfer Records to DB...")
-        save_data_transfer_manpping(conn, filepath, manifest_df)
+        data_transfer_manpping_config = args.db_config["data_transfer_file_mapping"]
+        save_data_transfer_manpping(conn, filepath, manifest_df, data_transfer_manpping_config)
     
     # Close the connection once all tasks are completed
     conn.close()

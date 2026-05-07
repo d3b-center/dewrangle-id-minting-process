@@ -11,7 +11,7 @@ Before running the workflow, ensure your D3b Data Warehouse credentials are conf
 # Load environment configuration
 source env_setting
 ```
-## CBTN ID Minting Process
+## CBTN Sample ID Minting Process
 This process is designed specifically for CBTN data. It assumes that participant and specimen metadata already exist in the Data Warehouse tables:
 - `prod_access.participants`
 - `prod_access.specimen`
@@ -32,17 +32,16 @@ python  prepare_cbtn_samples_id_mint.py \
 	--type both
 ```
 **Functionality**
-
-This step will:
-- Check whether participant and specimen records already exist in the DWH
+- Check whether participant and specimen records already exist in the DWH, and
 - Check whether records already have minted IDs in the DWH
-- Generate manifests(if records exist):
-  - cbtn_participants_specimens_to_mint.csv (ready for ID minting)
-  - cbtn_participants_specimens_minted_in_dwh.csv (alreay minted samples)
-  - cbtn_participants_missing_in_dwh.csv (case_id not found in the dwh)
-  - cbtn_specimens_missing_in_dwh.csv  (sample_id, aliquot_id not found in the dwh)
+- If not:
+  - Generate manifests (if applicable):
+    - `cbtn_participants_specimens_to_mint.csv` (ready for ID minting)
+    - `cbtn_participants_specimens_minted_in_dwh.csv` (alreay minted samples)
+    - `cbtn_participants_missing_in_dwh.csv` (case_id not found in the dwh)
+    - `cbtn_specimens_missing_in_dwh.csv`  (sample_id, aliquot_id not found in the dwh)
 
-### Step 3: Run ID Minting
+### Step 3: Run Sample ID Minting
 Use either:
 - The output manifest from Step 2, or
 - A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
@@ -87,15 +86,19 @@ Create a manifest useing the study manifest template: [`manifests/study_manifest
 ```bash
 # save study manifest
 python source_metadata_transfer.py \
---type study test_data/test_study_manifest.csv
+--env qa \
+--type study \
+--manifest test_data/test_study_manifest.csv
 ```
 
-Output:
-- Study metadata is saved into the DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.src_study_manifests`
-  - (prod)  `src_d3b_file_mgmt_manifests.src_study_manifests`
-- A study manifest for ID minting is generated:
-  - `study_metadata_for_id_minting.csv`
+**Functionality**
+- Check whether study records already have minted IDs in the DWH
+- If not:
+  - Save study metadata into the DWH:
+    - (test)  `huangx_dev_schema_dgd_workflow.src_study_manifests`
+    - (prod)  `src_d3b_file_mgmt_manifests.src_study_manifests`
+  - Generate a study manifest for ID minting:
+    - `study_metadata_for_id_minting.csv`
 
 Example Logs:
 ```
@@ -155,18 +158,21 @@ Required fields:
 ```bash
 # save sample manifest
 python source_metadata_transfer.py \
+--env qa \
 --type sample \
 --manifest test_data/test_sample_manifest.csv
 ```
 
-Output:
-- Study metadata is saved into the DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.src_sample_manifests`
-  - (prod)  `src_d3b_file_mgmt_manifests.src_sample_manifests`
-- A study manifest for ID minting is generated:
-  - `sample_metadata_for_id_minting.csv`
-    - `descriptor = case_id || ';' || study_id`
-    - `descriptor = aliquot_id || ';' || study_id`
+**Functionality**
+- Check whether sample records already have minted IDs in the DWH
+- If not:
+  - Save sample metadata into the DWH:
+    - (test)  `huangx_dev_schema_dgd_workflow.src_sample_manifests`
+    - (prod)  `src_d3b_file_mgmt_manifests.src_sample_manifests`
+  - Generate a sample manifest for ID minting:
+    - `sample_metadata_for_id_minting.csv`
+      - `descriptor = case_id || ';' || study_id`
+      - `descriptor = aliquot_id || ';' || study_id`
 
 Example Logs:
 ```
