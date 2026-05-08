@@ -11,12 +11,11 @@ The workflows support:
 - Source file registration
 - Harmonized file registration
 
-The overall process is divided into the following project categories:
 | Project Type | Description |
 |---|---|
 | CBTN Projects | CBTN project where participant and specimen metadata already exists in the D3b DWH `prod_access` schema. These workflows primarily focus on Dewrangle ID minting. |
-| D3b non-CBTN Projects | Other D3b-managed projects that require study and sample metadata intake into the D3b DWH before Dewrangle ID minting. |
-| Kids First & INCLUDE Projects | Sample clinal metadata are maintained in the DCC DWH. Depending on whether metadata already exists in the DCC DWH, workflows may include metadata intake and/or Dewrangle ID minting. |
+| D3b non-CBTN Projects | Other D3b-managed projects that require study and sample metadata ingestion into the D3b DWH before Dewrangle ID minting. |
+| Kids First & INCLUDE Projects | Clinical/sample metadata are maintained in the DCC DWH. Depending on whether metadata already exists in the DCC DWH, workflows may include metadata intake and/or Dewrangle ID minting. |
 | All Projects | Shared workflows for source file intake and harmonized file intake across all project types. |
 
 ## Overview
@@ -93,7 +92,7 @@ python org_globalids_mint.py \
 
 ---
 
-## 2. D3b non-CBTN Project Intake Process
+## 2. D3b Non-CBTN Projects Intake Process
 This workflow supports non-CBTN D3b-managed projects.
 The workflow includes:
   - Study Intake
@@ -102,8 +101,6 @@ The workflow includes:
 
 ### 2.1 Study Intake Process
 
-### (I) Save Study Metadata into the D3B DWH
-
 ##### Step 1: Prepare Input Study Manifest
 Create a manifest useing the study manifest template: [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
 
@@ -111,7 +108,7 @@ Create a manifest useing the study manifest template: [`manifests/study_manifest
 - study_name
 - program
 
-##### Step 2: Save Study Metadata into the D3b DWH
+##### Step 2: Ingest Study Metadata into the D3b DWH
 ```bash
 # save study manifest
 python source_metadata_intake.py \
@@ -136,14 +133,13 @@ Example Logs:
 2026-05-03 03:59:26 | INFO | ✅ Generated study_metadata_for_id_minting.csv for dewrangle ID minting.
 ```
 
-### (II) Dewrangle Study ID Minting Process
-##### Step 1: Prepare Study ID Minting Manifest
-Use either:
-- The output manifest from previous step, or
+##### Step 3: Run Study ID Minting
+Prepare study ID minting manifest, use either:
+- The output manifest from step 2, or
 - A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
   - `fhirResourceType = 'ResearchStudy'`
 
-##### Step 2: Run Study ID Minting
+**Run**:
 ```bash
 # study id minting
 python org_globalids_mint.py \
@@ -172,8 +168,6 @@ Example Logs:
 ```
 ### 2.2 Sample Intake Process
 
-#### (I) Save Sample Metadata into D3b DWH
-
 ##### Step 1: Prepare Input Sample Manifest
 
 Create a manifest using the sample template: [`manifests/sample_manifest_template.csv`](manifests/sample_manifest_template.csv)
@@ -185,7 +179,7 @@ Required fields:
 - `aliquot_id` will be used for biospecimen id minting
 
 
-##### Step 2: Save Sample Metadata into the D3b DWH
+##### Step 2: Ingest Sample Metadata into the D3b DWH
 ```bash
 # save sample manifest
 python source_metadata_intake.py \
@@ -211,13 +205,9 @@ Example Logs:
 2026-05-03 04:33:05 | INFO | ✅ Insert 5 rows into huangx_dev_schema_dgd_workflow.src_sample_manifests
 2026-05-03 04:33:05 | INFO | ✅ Generated sample_metadata_for_id_minting.csv for dewrangle ID minting.
 ```
-
-#### (II) Dewrangle Sample ID Minting Process
-
-##### Step 1: Prepare Sample ID Minting Manifest
-
-Use either:
-- Output from previous step, or
+##### Step 3: Run Sample ID Minting
+Prepare sample ID minting manifest, use either:
+- Output from step 2, or
 - A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
   - **Paticipant ID minting:** 
     - `fhirResourceType = 'Patient'`
@@ -228,7 +218,7 @@ Use either:
 
 **⚠️ Note:** Include `study_id` in the descriptor to ensure the correct study can always be identified, especially when the same `case_id` or `aliquot_id` appears across different studies.
 
-##### Step 2: Run ID minting
+**Run**:
 
 ```bash
 # sample id minting
@@ -263,16 +253,14 @@ The workflow depends on whether participant/specimen metadata already exists in 
 
 ### 3.1 Study Intake Process
 
-#### (I) Save Study Metadata into the DCC DWH
-
-##### Step 1: Prepare input manifest
+##### Step 1: Prepare Input Study Manifest
 Create a manifest useing the study manifest template: [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
 
 **Required fields:**
 - study_name
 - program
 
-##### Step 2: Save Study Metadata into the DCC DWH
+##### Step 2: Ingest Study Metadata into the DCC DWH
 ```bash
 # save study manifest
 python source_metadata_intake.py \
@@ -289,14 +277,14 @@ python source_metadata_intake.py \
   - Generate a study manifest for ID minting:
     - `study_metadata_for_id_minting.csv`
 
-#### (II) Dewrangle Study ID Minting Process
-##### Step 1: Prepare ID minting manifest
-Use either:
-- The output manifest from Step 2, or
+
+##### Step 3: Run Study ID Minting
+Prepare sample ID minting manifest, use either:
+- Output from step 2, or
 - A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
   - `fhirResourceType = 'ResearchStudy'`
 
-##### Step 2: Run Study ID Minting
+**Run**
 ```bash
 # study id minting
 python org_globalids_mint.py \
@@ -308,18 +296,17 @@ python org_globalids_mint.py \
 **Output**:
 - Dewrangle study IDs are generated
 - Dewrangle report is saved into the DCC DWH
-- 
+  
 ### 3.2 Sample Intake Process
 
 #### Scenario A — Sample Metadata Already Exists in the DCC DWH
 - Skip sample metadata ingestion step
-- Proceed directly to the Dewrangle Sample ID Minting Process.
+- Proceed directly to `Step 3: Run Sample ID minting`
 
 #### Scenario B — Sample Metadata Does NOT Exist in the DCC DWH
 - Perform sample metadata ingestion into the DCC DWH
 - Then proceed to the Dewrangle Sample ID Minting Process
 
-#### (I) Save Sample Metadata into D3b DWH
 ##### Step 1: Prepare Input Sample Manifest
 Create a manifest using the sample template: [`manifests/sample_manifest_template.csv`](manifests/sample_manifest_template.csv)
 
@@ -327,7 +314,7 @@ Required fields:
 `Required_fields = ["study_id", "case_id", "sample_id", "aliquot_id"]`
 
 
-##### Step 2: Save Sample Metadata into the DCC DWH
+##### Step 2: Ingest Sample Metadata into the DCC DWH
 ```bash
 # save sample manifest
 python source_metadata_intake.py \
@@ -348,10 +335,10 @@ python source_metadata_intake.py \
       - `descriptor = case_id || ';' || study_id`
       - `descriptor = aliquot_id || ';' || study_id`
 
-#### (II) Dewrangle Sample ID Minting Process
-##### Step 1: Prepare ID minting manifest
-Use either:
-- Output from previous step, or
+
+##### Step 3: Run Sample ID minting
+Prepare sample ID minting manifest, use either:
+- Output from step 2, or
 - A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
   - **Paticipant ID minting:** 
     - `fhirResourceType = 'Patient'`
@@ -362,7 +349,7 @@ Use either:
 
 **⚠️ Note:** Include `study_id` in the descriptor to ensure the correct study can always be identified, especially when the same `case_id` or `aliquot_id` appears across different studies.
 
-##### Step 2: Run Sample ID minting
+**Run**
 
 ```bash
 # sample id minting
@@ -377,10 +364,12 @@ Output:
 - Dewrangle report is saved into the DCC DWH
 
 
-## 4. All Project File ID Minting Process
+## 4. File Intake Process (All Projects)
+All file metadata is ingested and stored in the **D3b Data Warehouse (DWH)**, regardless of project type (CBTN, D3b non-CBTN, or Kids First & INCLUDE).
+
 ### 4.1 Source File Intake Process
 
-#### (I) Run DFF Data Transfer Pipeline
+#### Step 1: Run DFF Data Transfer Pipeline
 - Refer to the [d3b-data-transfer-pipeline](https://github.com/d3b-center/d3b-data-transfer-pipeline) repository for detailed instructions.
 
 Output:
@@ -389,20 +378,17 @@ Output:
   - (prod)  `src_d3b_file_mgmt_manifests.{src_file_manifests_xxx}`
 
 
-#### (II) Dewrangle Source File ID Minting Process
+#### Step 2: Dewrangle Source File ID Minting
+Create a manifest useing the source file manifest template: [`manifests/dewrangle_id_minting_source_files.csv`](`manifests/dewrangle_id_minting_source_files.csv)
+- Required fields:
+  - `study_id`
+  - `file_name`
+  - `dt_id`
+  - `fhirResourceType`
+  - `descriptor`
+  - `descriptorState`
 
-##### Step 1: Prepare input manifest
-- Create a manifest useing the source file manifest template: [`manifests/dewrangle_id_minting_source_files.csv`](`manifests/dewrangle_id_minting_source_files.csv)
-  - Required fields:
-    - `study_id`
-    - `file_name`
-    - `dt_id`
-    - `fhirResourceType`
-    - `descriptor`
-    - `descriptorState`
-
-##### Step 2: Run file ID minting
-
+**Run**
 ```bash
 # source file id minting
 python org_globalids_mint.py \
@@ -441,7 +427,7 @@ Example Logs:
 ```
 ### 4.2 Harmonized File Intake Process
 
-##### Step 1: Prepare input manifest
+##### Step 1: Prepare harmonized data input manifest
 - Create a manifest useing the harmonized file manifest template: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
   - `fhirResourceType = 'DoucmentReference'`
 
