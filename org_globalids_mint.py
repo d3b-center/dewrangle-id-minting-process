@@ -353,6 +353,16 @@ def upload_org_file(org_id, csv_path: Path):
 # ======================================
 # Database Helpers
 # ======================================
+def get_db_config(database_type: str):
+    """
+    Return warehouse config based on project type.
+    """
+    if database_type == "d3b":
+        return config["db"]["d3b_warehouse"]
+    if database_type == "dcc":
+        return config["db"]["dcc_warehouse"]
+    raise ValueError(f"Unsupported database_type: {database_type}")
+
 def connect_to_database(db_host, db_name, db_user, db_password):
     db_config = {
         "host": db_host,
@@ -536,6 +546,12 @@ def parse_args():
         help="Environment to use (prod or qa). Determines default schema and organization_id if not set explicitly."
     )
     parser.add_argument(
+        "--db_type",
+        required=True,
+        choices=["d3b", "dcc"],
+        help="Database warehouse type (d3b or dcc). Ddetermines which warehouse connection and source metadata tables are used.",
+    )
+    parser.add_argument(
         "--organization_id",
         default=None,
         help="Dewrangle Organization ID. Overrides --env default if provided."
@@ -552,14 +568,12 @@ def parse_args():
     elif args.env == "prod":
         args.organization_id = "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ=" # Dewrangle Kids First organization ID for the ID minting
         org_message = "🚀 Using Kids First prod Dewrangle organization for ID minting"
-        db_config = config["db"]["d3b_warehouse"]["prod"]  # Use prod DB config for prod env
+
     elif args.env == "qa":
         args.organization_id = "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=" # Dewrangle test-dewrangle-ids organization ID for the ID minting
         org_message = "🧪 Using test-dewrangle-ids organization for ID minting"
-        db_config = config["db"]["d3b_warehouse"]["qa"]  # Use qa DB config for qa env
     else:
         parser.error("Either --organization_id must be set or --env must be 'prod' or 'qa'.")
-    args.db_config = db_config
     args.org_message = org_message
     return args
 
@@ -568,6 +582,9 @@ def main():
     args = parse_args()
     print(args.org_message)
     manifest_path = Path(args.manifest).resolve()
+    env_type = args.env.lower()
+    database_type = args.db_type.lower()
+    db_config = get_db_config(database_type)
 
     # --- Step 1: Read and validate manifest ---
     manifest_df = pd.read_csv(manifest_path)
@@ -580,17 +597,17 @@ def main():
 
     # --- Step 2: Connect to the database once
     conn = connect_to_database(
-        db_host=args.db_config["db_host"],
-        db_name=args.db_config["db_name"],
-        db_user=args.db_config["db_user"],
-        db_password=args.db_config["db_password"]
+        db_host=db_config["db_host"],
+        db_name=db_config["db_name"],
+        db_user=db_config["db_user"],
+        db_password=db_config["db_password"]
     )
 
     # --- Step 3: check if descriptors already exist ---
     existing_rows = check_db_records_exist(
         conn,  # Pass the connection
-        schema_name=args.db_config["dewrangle_ids"]["schema"],
-        table_name=args.db_config["dewrangle_ids"]["table"],
+        schema_name=db_config[env_type]["dewrangle_ids"]["schema"],
+        table_name=db_config[env_type]["dewrangle_ids"]["table"],
         df=manifest_df,
         output_dir=args.output_dir
     )
@@ -620,7 +637,7 @@ def main():
 
     # Step 7: Save to dewrangle ids to warehouse
     print(f"🗂️ Saving dewrangle IDs report to DB...")
-    dewrangle_ids_config = args.db_config["dewrangle_ids"]
+    dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
     save_dewrangle_ids(conn, filepath, dewrangle_ids_config)
 
      # Step 7: Optionally save Data Transfer mapping
@@ -631,7 +648,7 @@ def main():
             raise ValueError(f"Manifest missing columns for saving DT records: {missing}")
         
         print(f"🗂️ Saving Data Transfer Records to DB...")
-        data_transfer_manpping_config = args.db_config["data_transfer_file_mapping"]
+        data_transfer_manpping_config = db_config[env_type]["data_transfer_file_mapping"]
         save_data_transfer_manpping(conn, filepath, manifest_df, data_transfer_manpping_config)
     
     # Close the connection once all tasks are completed

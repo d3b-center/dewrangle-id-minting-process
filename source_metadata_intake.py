@@ -21,6 +21,35 @@ logger = logging.getLogger(__name__)
 
 
 # ======================================
+# Load Correct Config
+# ======================================
+def get_db_config(database_type: str):
+    """
+    Return warehouse config based on project type.
+    """
+    if database_type == "d3b":
+        return config["db"]["d3b_warehouse"]
+    if database_type == "dcc":
+        return config["db"]["dcc_warehouse"]
+    raise ValueError(f"Unsupported database_type: {database_type}")
+def get_source_metadata_config(
+    db_config: dict,
+    env_type: str,
+    source_type: str,
+):
+    """
+    Return source metadata table configuration.
+    """
+    if source_type == "study":
+        source_key = "source_study_metadata"
+    elif source_type == "sample":
+        source_key = "source_sample_metadata"
+    else:
+        raise ValueError(f"Unsupported source_type: {source_type}")
+    
+    return db_config[env_type][source_key]
+
+# ======================================
 # Database Helpers
 # ======================================
 def connect_to_database(db_host, db_name, db_user, db_password):
@@ -164,37 +193,41 @@ def main():
         choices=["prod", "qa"],
         help="Environment to use (prod or qa)."
     )
-    parser.add_argument("--type", required=True, help="manifest type: study or sample", choices=["study", "sample"])
-
+    parser.add_argument(
+        "--source_type",
+        required=True,
+        choices=["study", "sample"],
+        help="Input source metadata type, study or sample.",
+    )
+    parser.add_argument(
+        "--db_type",
+        required=True,
+        choices=["d3b", "dcc"],
+        help="Database warehouse type (d3b or dcc). Ddetermines which warehouse connection and source metadata tables are used.",
+    )
     args = parser.parse_args()
 
-    env_type = args.env
+    env_type = args.env.lower()
+    source_type = args.source_type.lower()
+    database_type = args.db_type.lower()
+
     # ======================================
     # ENV CONFIG
     # ======================================
-    db_config = config["db"]["d3b_warehouse"]
+    db_config = get_db_config(database_type)
     db_host = db_config["db_host"]
     db_name = db_config["db_name"]
     db_user = db_config["db_user"]
     db_password = db_config["db_password"]
-    
-    study_source_schema = db_config[env_type]["source_study_metadata"]["schema"]
-    study_source_table = db_config[env_type]["source_study_metadata"]["table"]
-    study_required_fields = db_config[env_type]["source_study_metadata"]["primary_key_cols"]
 
-    sample_source_schema = db_config[env_type]["source_sample_metadata"]["schema"]
-    sample_source_table = db_config[env_type]["source_sample_metadata"]["table"]
-    sample_required_fields = db_config[env_type]["source_sample_metadata"]["primary_key_cols"]
-    
-    type = args.type.lower()
-    if type == "study":
-        REQUIRED_FIELDS = study_required_fields
-        source_schema = study_source_schema
-        source_table = study_source_table
-    else:
-        REQUIRED_FIELDS = sample_required_fields
-        source_schema = sample_source_schema
-        source_table = sample_source_table
+    source_config = get_source_metadata_config(
+        db_config=db_config,
+        env_type=env_type,
+        source_type=source_type,
+    )
+    source_schema = source_config["schema"]
+    source_table = source_config["table"]
+    REQUIRED_FIELDS = source_config["primary_key_cols"]
 
     # Load CSV
     df = pd.read_csv(args.manifest)
