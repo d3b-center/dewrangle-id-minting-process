@@ -52,11 +52,12 @@ def get_source_metadata_config(
 # ======================================
 # Database Helpers
 # ======================================
-def connect_to_database(db_host, db_name, db_user, db_password):
+def connect_to_database(db_host, db_name, db_user, db_port,db_password):
     db_config = {
         "host": db_host,
         "dbname": db_name,
         "user": db_user,
+        "port": db_port,
         "password": db_password,
     }
 
@@ -218,6 +219,7 @@ def main():
     db_host = db_config["db_host"]
     db_name = db_config["db_name"]
     db_user = db_config["db_user"]
+    db_port = db_config["db_port"]
     db_password = db_config["db_password"]
 
     source_config = get_source_metadata_config(
@@ -225,6 +227,7 @@ def main():
         env_type=env_type,
         source_type=source_type,
     )
+
     source_schema = source_config["schema"]
     source_table = source_config["table"]
     REQUIRED_FIELDS = source_config["primary_key_cols"]
@@ -236,7 +239,7 @@ def main():
     validate_manifest(df, REQUIRED_FIELDS)
 
     # Connect to DB
-    conn = connect_to_database(db_host, db_name, db_user, db_password)
+    conn = connect_to_database(db_host, db_name, db_user,db_port, db_password)
 
     # Get DB table columns
     table_columns = get_table_columns(conn, source_schema, source_table)
@@ -258,7 +261,7 @@ def main():
 
     # Generate manifest for dewrangle ID minting
     rows = []
-    if type == "study":
+    if source_type == "study":
         study_names = set(df['study_name'].dropna())
         for name in study_names:
             rows.append({
@@ -267,7 +270,7 @@ def main():
                 "descriptorState": "ACTIVE"
             })
 
-    elif type == "sample":
+    elif source_type == "sample":
         df_nonan = df.dropna(subset=['case_id', 'aliquot_id'])
         patient_ids = set(zip(df_nonan['study_id'], df_nonan['case_id']))
         specimen_ids = set(zip(df_nonan['study_id'], df_nonan['aliquot_id']))
@@ -287,9 +290,10 @@ def main():
                 "descriptorState": "ACTIVE"
             })
     else:
-        raise ValueError(f"❌ Invalid type: {type}")
+        raise ValueError(f"❌ Invalid type: {source_type}")
     
     output_df = pd.DataFrame(rows)
+
     # --- Check if descriptors already exist ---
     existing_rows = check_db_records_exist(
         conn,
@@ -297,17 +301,19 @@ def main():
         table_name=db_config[env_type]["dewrangle_ids"]["table"],
         df=output_df,
     )
-    if not existing_rows.empty:
-        existing_rows.to_csv(f"{type}_metadata_already_minted.csv", index=False)
+    if existing_rows is not None and not existing_rows.empty:
+        existing_rows.to_csv(f"{source_type}_metadata_already_minted.csv", index=False)
         logger.warning(
             f"⚠️ Found {len(existing_rows)} descriptors already registered. "
-            f"See {type}_metadata_already_minted.csv"
+            f"See {source_type}_metadata_already_minted.csv"
         )
+        mint_df = output_df[~output_df["descriptor"].isin(existing_rows["descriptor"])]
+    else:
+        mint_df = output_df.copy()
     
-    mint_df = output_df[~output_df["descriptor"].isin(existing_rows["descriptor"])]
     if not mint_df.empty:
-        mint_df.to_csv(f"{type}_metadata_for_id_minting.csv", index=False)
-        logger.info(f"✅ Generated {type}_metadata_for_id_minting.csv for dewrangle ID minting.")
+        mint_df.to_csv(f"{source_type}_metadata_for_id_minting.csv", index=False)
+        logger.info(f"✅ Generated {source_type}_metadata_for_id_minting.csv for dewrangle ID minting.")
     else:
         logger.info(f"✅ No new descriptors to mint IDs.")
     

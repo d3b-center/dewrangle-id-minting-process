@@ -18,11 +18,11 @@ config = {
     },
     "db": {
         "d3b_warehouse": {
-            "db_host": os.environ.get("D3B_WAREHOUSE_HOST", "localhost"),
-            "db_port": os.environ.get("D3B_WAREHOUSE_PORT", "5432"),
-            "db_name": os.environ.get("D3B_WAREHOUSE_DB_NAME", "postgres"),
-            "db_user": os.environ.get("D3B_WAREHOUSE_DB_USER", "postgres"),
-            "db_password": os.environ.get("D3B_WAREHOUSE_DB_USER_PW", "postgres"),
+            "db_host": os.environ.get("D3B_WAREHOUSE_HOST"),
+            "db_port": os.environ.get("D3B_WAREHOUSE_PORT"),
+            "db_name": os.environ.get("D3B_WAREHOUSE_DB_NAME"),
+            "db_user": os.environ.get("D3B_WAREHOUSE_DB_USER"),
+            "db_password": os.environ.get("D3B_WAREHOUSE_DB_USER_PW"),
             "qa": {
                 "dewrangle_ids": {
                 "schema": os.environ.get("QA_D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA"),
@@ -74,12 +74,12 @@ config = {
             },
         },
         "dcc_warehouse": {
-            "db_host": os.environ.get("DCC_WAREHOUSE_HOST", "localhost"),
-            "db_port": os.environ.get("DCC_WAREHOUSE_PORT", "5432"),
-            "db_name": os.environ.get("DCC_WAREHOUSE_DB_NAME", "postgres"),
-            "db_user": os.environ.get("DCC_WAREHOUSE_DB_USER", "postgres"),
-            "db_password": os.environ.get("DCC_WAREHOUSE_DB_USER_PW", "postgres"),
-             "prod": {
+            "db_host": os.environ.get("DCC_WAREHOUSE_HOST"),
+            "db_port": os.environ.get("DCC_WAREHOUSE_PORT"),
+            "db_name": os.environ.get("DCC_WAREHOUSE_DB_NAME"),
+            "db_user": os.environ.get("DCC_WAREHOUSE_DB_USER"),
+            "db_password": os.environ.get("DCC_WAREHOUSE_DB_USER_PW"),
+            "prod": {
                 "dewrangle_ids": {
                     "schema": os.environ.get("PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_SCHEMA"),
                     "table": os.environ.get("PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_TABLE"),
@@ -93,6 +93,23 @@ config = {
                 "source_sample_metadata": {
                     "schema": os.environ.get("PROD_DCC_WAREHOUSE_SAMPLE_SOURCE_SCHEMA"),
                     "table": os.environ.get("PROD_DCC_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
+                    "primary_key_cols": ["study_id", "case_id", "sample_id", "aliquot_id"],
+                }
+            },
+            "qa": {
+                "dewrangle_ids": {
+                "schema": os.environ.get("QA_DCC_WAREHOUSE_DEWRANGLE_IDS_SCHEMA"),
+                "table": os.environ.get("QA_DCC_WAREHOUSE_DEWRANGLE_IDS_TABLE"),
+                "primary_key_cols": ["globalId", "studyGlobalId", "descriptor", "descriptorState"],
+                },
+                "source_study_metadata": {
+                    "schema": os.environ.get("QA_DCC_WAREHOUSE_STUDY_SOURCE_SCHEMA"),
+                    "table": os.environ.get("QA_DCC_WAREHOUSE_STUDY_SOURCE_TABLE"),
+                    "primary_key_cols": ["study_name", "program"],
+                },
+                "source_sample_metadata": {
+                    "schema": os.environ.get("QA_DCC_WAREHOUSE_SAMPLE_SOURCE_SCHEMA"),
+                    "table": os.environ.get("QA_DCC_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
                     "primary_key_cols": ["study_id", "case_id", "sample_id", "aliquot_id"],
                 }
             },

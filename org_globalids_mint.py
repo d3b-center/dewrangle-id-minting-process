@@ -363,11 +363,12 @@ def get_db_config(database_type: str):
         return config["db"]["dcc_warehouse"]
     raise ValueError(f"Unsupported database_type: {database_type}")
 
-def connect_to_database(db_host, db_name, db_user, db_password):
+def connect_to_database(db_host, db_name, db_user, db_port, db_password):
     db_config = {
         "host": db_host,
         "dbname": db_name,
         "user": db_user,
+        "port": db_port,
         "password": db_password,
     }
 
@@ -600,6 +601,7 @@ def main():
         db_host=db_config["db_host"],
         db_name=db_config["db_name"],
         db_user=db_config["db_user"],
+        db_port=db_config["db_port"],
         db_password=db_config["db_password"]
     )
 
