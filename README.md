@@ -56,23 +56,7 @@ d3b-dewrangle --help
 
 All credentials and environment-specific settings are loaded from [**`configs/env_setting`**](configs/env_setting).
 
-> **Need access?** If you don't have access to the default test enviroment, request them from the admin team.
-
-### Required environment variables
-
-| Variable | Description |
-|----------|-------------|
-| `DEWRANGLE_TOKEN` | Dewrangle API key |
-| `DEWRANGLE_BASE_URL` | Dewrangle base URL (e.g. `https://dewrangle.com/`) |
-| `D3B_WAREHOUSE_DB_USER` / `D3B_WAREHOUSE_DB_USER_PW` | D3b DWH credentials |
-| `DCC_WAREHOUSE_DB_USER` / `DCC_WAREHOUSE_DB_USER_PW` | DCC DWH credentials |
-
-### Optional overrides
-
-| Variable | Description |
-|----------|-------------|
-| `D3B_WAREHOUSE_HOST` / `D3B_WAREHOUSE_PORT` / `D3B_WAREHOUSE_DB_NAME` | D3b DWH connection details |
-| `DCC_WAREHOUSE_HOST` / `DCC_WAREHOUSE_PORT` / `DCC_WAREHOUSE_DB_NAME` | DCC DWH connection details |
+> If you don't have access to the default enviroment, request them from the admin team.
 
 ### Load configuration before every run
 
@@ -99,11 +83,6 @@ d3b-dewrangle <subcommand> [options]
 | `study-create` | Create a Kids First study in Dewrangle and save to DWH | `d3b-dewrangle study-create --env qa --db dcc --study-name "My Study"` |
 | `cbtn-prepare` | Validate CBTN data and prepare minting manifest | `d3b-dewrangle cbtn-prepare --manifest manifests/cbtn_sample_participants.csv --type both` |
 
-### Get help for any subcommand
-```bash
-d3b-dewrangle --help
-d3b-dewrangle global-id-mint --help
-```
 
 ### Common arguments
 
