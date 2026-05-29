@@ -12,7 +12,7 @@ Subcommands:
   cbtn-prepare      Validate CBTN data and prepare a minting manifest
 
 Usage examples:
-  d3b-dewrangle source-intake --env qa --db d3b --type sample --manifest sample.csv
+  d3b-dewrangle source-intake --env qa --db d3b --source_type sample --manifest sample.csv
   d3b-dewrangle global-id-mint --env qa --db d3b --manifest manifest.csv --save-dt-record
   d3b-dewrangle global-id-check --env qa --id sd-xxxxxx
   d3b-dewrangle global-id-update --env qa --db d3b --manifest update.csv

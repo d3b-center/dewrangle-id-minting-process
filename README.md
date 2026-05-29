@@ -54,7 +54,9 @@ d3b-dewrangle --help
 
 ## Configuration
 
-All credentials and environment-specific settings are loaded from **`configs/env_setting`**.
+All credentials and environment-specific settings are loaded from [**`configs/env_setting`**](configs/env_setting).
+
+> **Need access?** If you don't have access to the default test enviroment, request them from the admin team.
 
 ### Required environment variables
 
@@ -77,6 +79,7 @@ All credentials and environment-specific settings are loaded from **`configs/env
 ```bash
 source configs/env_setting
 ```
+
 ---
 
 ## Quick Start (Unified CLI)
@@ -90,17 +93,16 @@ d3b-dewrangle <subcommand> [options]
 | Subcommand | What it does | Example |
 |------------|--------------|---------|
 | `source-intake` | Ingest study / sample metadata into the DWH | `d3b-dewrangle source-intake --env qa --db d3b --type study --manifest manifests/study_intake_manifest.csv` |
-| `global-id-mint` | Mint org-level global IDs from a manifest and save its record into DWH| `d3b-dewrangle global-id-mint --env qa --db d3b --manifest manifests/dewrangle_id_minting_manifest.csv` |
-| `global-id-check` | Query a specific global ID and download its record | `d3b-dewrangle global-id-check --env qa --id sd-xxxxxx` |
-| `global-id-update` | Update specific global ID records from a manifest and update its record in the DWH| `d3b-dewrangle global-id-update --env qa --db d3b --manifest manifests/dewrangle_id_update_manifest.csv` |
-| `study-create` | Create a Kids First study in Dewrangle and save its record into DWH| `d3b-dewrangle study-create --env qa --db dcc --study-name "My Study"` |
+| `global-id-mint` | Mint org-level global IDs from a manifest and save to DWH | `d3b-dewrangle global-id-mint --env qa --db d3b --manifest manifests/dewrangle_id_minting_manifest.csv` |
+| `global-id-check` | Query a specific global ID from Dewrangle and download its record | `d3b-dewrangle global-id-check --env qa --id sd-xxxxxx` |
+| `global-id-update` | Update specific global IDs in Dewrangle and sync changes to DWH | `d3b-dewrangle global-id-update --env qa --db d3b --manifest manifests/dewrangle_id_update_manifest.csv` |
+| `study-create` | Create a Kids First study in Dewrangle and save to DWH | `d3b-dewrangle study-create --env qa --db dcc --study-name "My Study"` |
 | `cbtn-prepare` | Validate CBTN data and prepare minting manifest | `d3b-dewrangle cbtn-prepare --manifest manifests/cbtn_sample_participants.csv --type both` |
 
 ### Get help for any subcommand
 ```bash
 d3b-dewrangle --help
 d3b-dewrangle global-id-mint --help
-d3b-dewrangle global-id-update --help
 ```
 
 ### Common arguments
@@ -177,7 +179,7 @@ Required fields: `study_name`, `program`
 d3b-dewrangle source-intake \
     --env qa --db d3b \
     --type study \
-    --manifest manifests/study_intake_manifest.csv
+    --manifest manifests/study_manifest_template.csv
 ```
 
 This generates `study_metadata_for_id_minting.csv` if studies are not yet minted.
@@ -205,7 +207,7 @@ Required fields: `study_id`, `case_id`, `sample_id`, `aliquot_id`
 d3b-dewrangle source-intake \
     --env qa --db d3b \
     --type sample \
-    --manifest manifests/sample_intake_manifest.csv
+    --manifest manifests/sample_manifest_template.csv
 ```
 
 This generates `sample_metadata_for_id_minting.csv`.
@@ -240,11 +242,10 @@ d3b-dewrangle study-create \
 ```
 
 Functionality:
-1. Query Dewrangle API to check if this study already exist. And check if this study alreay exist in the DWH,
-2. If yes + in DWH → nothing to do
-3. If yes + missing from DWH → download report and save
-4. If no → create study → download report → save to DWH
-5. 
+1. Query Dewrangle API to check if this study already exists, and check the DWH
+2. If exists in Dewrangle + in DWH → nothing to do
+3. If exists in Dewrangle + missing from DWH → download report and save
+4. If not exists → create study → download report → save to DWH
 #### 3.2 Sample ID Minting
 
 **Step 1 — Prepare sample manifest**
@@ -264,11 +265,11 @@ d3b-dewrangle global-id-mint \
 ```
 ---
 
-### 5. File Intake (All Projects)
+### 4. File Intake (All Projects)
 
 All file metadata is stored in the **D3b DWH**, regardless of project type.
 
-#### 5.1 Source File Intake
+#### 4.1 Source File Intake
 
 **Step 1 — Run the DFF Data Transfer Pipeline**
 - See [d3b-data-transfer-pipeline](https://github.com/d3b-center/d3b-data-transfer-pipeline) for instructions.
@@ -291,7 +292,7 @@ d3b-dewrangle global-id-mint \
 - Report saved to DWH (`dewrangle_ids` table)
 - Data transfer mapping saved to DWH (`data_transfer_file_mapping` table)
 
-#### 5.2 Harmonized File Intake
+#### 4.2 Harmonized File Intake
 
 Prepare a manifest using [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
 - `fhirResourceType = 'DocumentReference'`
