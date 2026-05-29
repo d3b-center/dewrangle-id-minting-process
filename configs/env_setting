@@ -1,116 +1,98 @@
-#! /bin/bash
-
-# Before loading this environment file, update all required
-# database credentials and Dewrangle credentials below.
+#!/bin/bash
+# =============================================================================
+# Dewrangle ID Minting — Environment Configuration
+# =============================================================================
 #
-# Example:
-# export DEWRANGLE_TOKEN=""
-# export D3B_WAREHOUSE_DB_USER="your_d3b_db_username"
-# export D3B_WAREHOUSE_DB_USER_PW="your_d3b_db_password"
-# export DCC_WAREHOUSE_DB_USER="your_dcc_db_username"
-# export DCC_WAREHOUSE_DB_USER_PW="your_dcc_db_password"
+# HOW TO USE:
+#   1. Fill in ALL variables marked with "<<<< FILL IN" below.
+#   2. (Optional) Replace your own test environment in the QA section.
+#   3. Load before every run:
+#        source configs/env_setting
 #
-# Load environment variables:
-# source env_setting
+# SECURITY: Never commit this file with real credentials.
+# =============================================================================
 
 
-################## Dewrangle Settings ##################
-export DEWRANGLE_TOKEN=""
+# =============================================================================
+# 1. DEWRANGLE (shared — same for prod and qa)
+# =============================================================================
+
+export DEWRANGLE_TOKEN=""               # <<<< FILL IN: your Dewrangle API key
 export DEWRANGLE_BASE_URL="https://dewrangle.com/"
 
 
-############# Data Warehouse Connection ################
-# ======= D3B Warehouse Connection =========
+# =============================================================================
+# 2. DATA WAREHOUSE CONNECTIONS
+# =============================================================================
+
+# ----- D3b Warehouse -----
 export D3B_WAREHOUSE_HOST="d3b-warehouse-aurora.cluster-cxxdzxepyea2.us-east-1.rds.amazonaws.com"
 export D3B_WAREHOUSE_PORT="5435"
 export D3B_WAREHOUSE_DB_NAME="postgres"
-export D3B_WAREHOUSE_DB_USER=""
-export D3B_WAREHOUSE_DB_USER_PW=""
+export D3B_WAREHOUSE_DB_USER=""         # <<<< FILL IN (if using D3B)
+export D3B_WAREHOUSE_DB_USER_PW=""      # <<<< FILL IN (if using D3B)
 
-# ======= DCC Warehouse Connection =========
+# ----- DCC Warehouse (Kids First / INCLUDE) -----
 export DCC_WAREHOUSE_HOST="include-warehouse-postgres-prd-rds.cbsbx2tb2sle.us-east-1.rds.amazonaws.com"
 export DCC_WAREHOUSE_PORT="5432"
 export DCC_WAREHOUSE_DB_NAME="includewarehouse"
-export DCC_WAREHOUSE_DB_USER=""
-export DCC_WAREHOUSE_DB_USER_PW=""
+export DCC_WAREHOUSE_DB_USER=""         # <<<< FILL IN (if using DCC)
+export DCC_WAREHOUSE_DB_USER_PW=""      # <<<< FILL IN (if using DCC)
 
 
-##########################################################
-######## D3b managed projects settings (D3B DWH) ########
-##########################################################
+# =============================================================================
+# 3. D3B DWH — TARGET SCHEMAS
+# =============================================================================
 
-# =========================================
-# ======= PROD Environment ================
-# =========================================
-# source study manifest dwh source
+# ----- PROD (production) -----
 export PROD_D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA="src_d3b_file_mgmt_manifests"
 export PROD_D3B_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
 
-# source sample manifest dwh source
 export PROD_D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA="src_d3b_file_mgmt_manifests"
 export PROD_D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE="src_sample_manifests"
 
-# save_dewrangle_ids to dwh
 export PROD_D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="src_dewrangle_identifiers"
 export PROD_D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
 
-# data transfer records to dwh
 export PROD_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="src_dewrangle_identifiers"
 export PROD_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
 
-# =========================================
-# ======= QA Environment ==================
-# =========================================
-# source study manifest dwh source
+# ----- QA (development / testing) -----
+# OR replace them with your own test environment
 export QA_D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
 export QA_D3B_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
 
-# source sample manifest dwh source
 export QA_D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
 export QA_D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE="src_sample_manifests"
 
-# source file manifest dwh source
 export QA_D3B_WAREHOUSE_FILE_SOURCE_SCHEMA="huangx_dev_schema_dgd_workflow"
 export QA_D3B_WAREHOUSE_FILE_SOURCE_TABLE="src_file_manifests"
 
-# save_dewrangle_ids to dwh
 export QA_D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="huangx_dev_schema_dgd_workflow"
 export QA_D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
 
-# data transfer records to dwh
 export QA_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA="huangx_dev_schema_dgd_workflow"
 export QA_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
 
 
+# =============================================================================
+# 4. DCC DWH — TARGET SCHEMAS (Kids First & INCLUDE)
+# =============================================================================
 
-##########################################################
-####### Kids First and INCLUDES settings (DCC DWH) ######
-##########################################################
-
-# =========================================
-# ======= PROD Environment ================
-# =========================================
-# source study manifest dwh source
+# ----- PROD (production) -----
 export PROD_DCC_WAREHOUSE_STUDY_SOURCE_SCHEMA=""
 export PROD_DCC_WAREHOUSE_STUDY_SOURCE_TABLE=""
 
-# save_dewrangle_ids to dwh
 export PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_SCHEMA=""
 export PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_TABLE=""
 
-
-# =========================================
-# ======= QA Environment ==================
-# =========================================
-# source study manifest dwh source
+# ----- QA (development / testing) -----
+# OR replace them with your own test environment
 export QA_DCC_WAREHOUSE_STUDY_SOURCE_SCHEMA="dewrangle_wf_test"
-export QA_D3B_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
+export QA_DCC_WAREHOUSE_STUDY_SOURCE_TABLE="src_study_manifests"
 
-# source sample manifest dwh source
 export QA_DCC_WAREHOUSE_SAMPLE_SOURCE_SCHEMA="dewrangle_wf_test"
 export QA_DCC_WAREHOUSE_SAMPLE_SOURCE_TABLE="src_sample_manifests"
 
-# save_dewrangle_ids to dwh
 export QA_DCC_WAREHOUSE_DEWRANGLE_IDS_SCHEMA="dewrangle_wf_test"
 export QA_DCC_WAREHOUSE_DEWRANGLE_IDS_TABLE="dewrangle_ids"
-
