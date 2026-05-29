@@ -1,7 +1,0 @@
-sample_id,aliquot_id,tissue_type,file_name,sequencing_center,platform,instrument_model,experiment_strategy,dt_id
-7003_test,test_003,Tumor,OPS-001/test_file.txt,UCSF,Illumina,Illumina NovaSeq 6000,WGS,OPS-001
-test_003,test_003,Tumor,OPS-002/test_cram.crai,UCSF,Illumina,Illumina NovaSeq 6000,WGS,OPS-002
-SM-LL9WB,SM-LL9WB,Normal,OPS-003/test_fastq.gz,UCSF,Illumina,Illumina NovaSeq 6000,WGS,OPS-003
-CG0018-9181,CG0018-9181,Normal,OPS-004/test_file.bam,CHOP,Illumina,Illumina NovaSeq 6000,WGS,OPS-004
-CG0037-9151,CG0037-9151,Normal,OPS-004/test_file.cram,CHOP,Illumina,Illumina NovaSeq 6000,WGS,OPS-004
-CG0037-9151,CG0037-9151,Normal,OPS-004/test_file.cram.crai,CHOP,Illumina,Illumina NovaSeq 6000,WGS,OPS-004
