@@ -12,7 +12,10 @@ config = {
                 "identifiers_report": "/api/rest/organizations/{org_id}/global-identifiers?job={job_id}",
             },
             "org_rest":{
-                 "identifiers_report": "/api/rest/organizations/{org_id}/global-identifiers",
+                "identifiers_report": "/api/rest/organizations/{org_id}/global-identifiers",
+            },
+            "study_rest":{
+                "identifiers_report": "/api/rest/studies/{study_node_id}/global-descriptors",
             }
         },
     },

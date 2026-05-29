@@ -7,8 +7,13 @@ need new IDs ("to mint"), which already have valid IDs, and which are missing fr
 the database.
 """
 
-import argparse
 import sys
+from pathlib import Path
+
+# Ensure project root is on path for src/ imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import argparse
 import os
 import pandas as pd
 import psycopg2
@@ -16,7 +21,7 @@ from psycopg2.extras import execute_values
 from psycopg2 import OperationalError
 import logging
 from pprint import pformat
-from env_config import config
+from src.env_config import config
 
 logging.basicConfig(
     level=logging.INFO,

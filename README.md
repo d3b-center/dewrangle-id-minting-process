@@ -1,448 +1,347 @@
 # Dewrangle ID Minting Process
 
-This repository supports the end-to-end **Dewrangle ID minting process** study, sample, and file intake workflows for:
-- **CBTN project**
+End-to-end workflows for minting Dewrangle global IDs and managing study / sample / file metadata across:
+
+- **CBTN projects**
 - **D3b non-CBTN projects**
-- **Kids First and INCLUDE projects**
+- **Kids First & INCLUDE projects**
 
-The workflows support:
+Supported workflows:
 - Source metadata intake into the Data Warehouse (DWH)
-- Dewrangle global ID minting
-- Source file registration
-- Harmonized file registration
+- Dewrangle global ID minting (org-level)
+- Dewrangle study creation and persistence (KF/INCLUDE)
+- Global ID check & update (query / upsert specific records)
+- Source file & harmonized file registration
 
-| Project Type | Description |
-|---|---|
-| CBTN Projects | CBTN project where participant and specimen metadata already exists in the D3b DWH `prod_access` schema. These workflows primarily focus on Dewrangle ID minting. |
-| D3b non-CBTN Projects | Other D3b-managed projects that require study and sample metadata ingestion into the D3b DWH before Dewrangle ID minting. |
-| Kids First & INCLUDE Projects | Clinical/sample metadata are maintained in the DCC DWH. Depending on whether metadata already exists in the DCC DWH, workflows may include metadata intake and/or Dewrangle ID minting. |
-| All Projects | Shared workflows for source file intake and harmonized file intake across all project types. |
+---
+## Data Flow Overview
 
-## Overview
 ![Data Flow](docs/dewrangle-id-minting-process.jpg)
 
+## Installation
 
-
-## Pre-setup
-Before running any workflow:
-- Configure all required database credentials and Dewrangle credentials in the `env_setting` file.
-- Load the environment variables.
-  ```bash
-  # Load environment configuration
-  source env_setting
-  ```
-
-## 1. CBTN Sample ID Minting Process
-This process is designed specifically for CBTN data. It assumes that participant and specimen metadata already exist in the D3b DWH:
-- `prod_access.participants`
-- `prod_access.specimen`
-  
-### Step 1: Prepare Input Manifest
-Create a manifest using the CBTN sample & participants template: [`manifests/cbtn_sample_participants.csv`](manifests/cbtn_sample_participants.csv)
-
-**Required fields:**
-| Minting Type | Required Fields |
-|---|---|
-| Participant ID Minting | `case_id` |
-| Specimen ID Minting | `sample_id`, `aliquot_id` |
-| Both | `case_id`, `sample_id`, `aliquot_id` |
-  
-### Step 2: Validate Inputs and Prepare ID Minting Manifest
+### 1. Clone the repository
 ```bash
-python  prepare_cbtn_samples_id_mint.py \
-	--manifest manifests/cbtn_sample_participants.csv \
-	--type both
-```
-**Functionality**
-- Validate whether participant and specimen records already exist in the D3b DWH
-- Check whether records already have minted IDs in the D3b DWH
-- If not:
-  - Generate manifests (if applicable):
-    - `cbtn_participants_specimens_to_mint.csv` (ready for ID minting)
-    - `cbtn_participants_specimens_minted_in_dwh.csv` (alreay minted samples)
-    - `cbtn_participants_missing_in_dwh.csv` (case_id not found in the D3b dwh)
-    - `cbtn_specimens_missing_in_dwh.csv`  (sample_id, aliquot_id not found in the D3b dwh)
-
-### Step 3: Run Sample ID Minting
-Use either:
-- The output manifest from Step 2, or
-- A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
-  - Participant: `descriptor = case_id || ';' || study_id`
-  - Specimen: `descriptor = aliquot_id || ';' || study_id`
-
-```bash
-python org_globalids_mint.py \
---env qa \
---db_type d3b \
---manifest cbtn_participants_specimens_to_mint.csv
+git clone git@github.com:d3b-center/dewrangle-id-minting-process.git
+cd dewrangle-id-minting-process
 ```
 
-| Argument | Description |
+### 2. Create a virtual environment (recommended)
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install the `d3b-dewrangle` CLI and dependencies
+
+```bash
+make install
+```
+
+This installs all dependencies from `requirements.txt` and registers the `d3b-dewrangle` console script via `pyproject.toml`.
+
+Or manually with `pip`:
+```bash
+pip install -r requirements.txt
+pip install -e .
+```
+
+Verify the command is available:
+```bash
+d3b-dewrangle --help
+```
+---
+
+## Configuration
+
+All credentials and environment-specific settings are loaded from **`configs/env_setting`**.
+
+### Required environment variables
+
+| Variable | Description |
 |----------|-------------|
-| `--env` | Environment for ID minting. Determines which Dewrangle organization ID is used if `--organization_id` is not set. Options: <br>• `prod` → Uses the KF production Dewrangle organization for minting IDs. <br>• `qa` → Uses the test Dewrangle organization for testing purposes. |
-| `--db_type` | Database warehouse type (d3b or dcc). Ddetermines which warehouse connection and source metadata tables are used. |
-| `--manifest` | Path to the input manifest CSV file. |
-| `--organization_id` | *(Optional)* Explicit Dewrangle organization ID to use. Overrides the `--env` default if provided. |
+| `DEWRANGLE_TOKEN` | Dewrangle API key |
+| `DEWRANGLE_BASE_URL` | Dewrangle base URL (e.g. `https://dewrangle.com/`) |
+| `D3B_WAREHOUSE_DB_USER` / `D3B_WAREHOUSE_DB_USER_PW` | D3b DWH credentials |
+| `DCC_WAREHOUSE_DB_USER` / `DCC_WAREHOUSE_DB_USER_PW` | DCC DWH credentials |
 
-**Output**:
-- Dewrangle study IDs are generated
-- Dewrangle report is saved into the D3b DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.dewrangle_ids`
-  - (prod)  `src_dewrangle_identifiers.dewrangle_ids`
+### Optional overrides
+
+| Variable | Description |
+|----------|-------------|
+| `D3B_WAREHOUSE_HOST` / `D3B_WAREHOUSE_PORT` / `D3B_WAREHOUSE_DB_NAME` | D3b DWH connection details |
+| `DCC_WAREHOUSE_HOST` / `DCC_WAREHOUSE_PORT` / `DCC_WAREHOUSE_DB_NAME` | DCC DWH connection details |
+
+### Load configuration before every run
+
+```bash
+source configs/env_setting
+```
+---
+
+## Quick Start (Unified CLI)
+
+The fastest way to run any workflow is through the unified `d3b-dewrangle` CLI:
+
+```bash
+d3b-dewrangle <subcommand> [options]
+```
+
+| Subcommand | What it does | Example |
+|------------|--------------|---------|
+| `source-intake` | Ingest study / sample metadata into the DWH | `d3b-dewrangle source-intake --env qa --db d3b --type study --manifest manifests/study_intake_manifest.csv` |
+| `global-id-mint` | Mint org-level global IDs from a manifest and save its record into DWH| `d3b-dewrangle global-id-mint --env qa --db d3b --manifest manifests/dewrangle_id_minting_manifest.csv` |
+| `global-id-check` | Query a specific global ID and download its record | `d3b-dewrangle global-id-check --env qa --id sd-xxxxxx` |
+| `global-id-update` | Update specific global ID records from a manifest and update its record in the DWH| `d3b-dewrangle global-id-update --env qa --db d3b --manifest manifests/dewrangle_id_update_manifest.csv` |
+| `study-create` | Create a Kids First study in Dewrangle and save its record into DWH| `d3b-dewrangle study-create --env qa --db dcc --study-name "My Study"` |
+| `cbtn-prepare` | Validate CBTN data and prepare minting manifest | `d3b-dewrangle cbtn-prepare --manifest manifests/cbtn_sample_participants.csv --type both` |
+
+### Get help for any subcommand
+```bash
+d3b-dewrangle --help
+d3b-dewrangle global-id-mint --help
+d3b-dewrangle global-id-update --help
+```
+
+### Common arguments
+
+| Argument | Choices | Description |
+|----------|---------|-------------|
+| `--env` | `prod`, `qa` | Determines default Dewrangle organization and DWH target schema |
+| `--db` | `d3b`, `dcc` | Database warehouse type |
+| `--manifest` | file path | Path to input CSV manifest |
+| `--organization-id` | string | Override default Dewrangle organization ID |
+| `--output-dir` | directory | Directory to save downloaded CSV reports |
+| `--save-dt-record` | flag | Save data transfer mapping record to DWH (source files only) |
 
 ---
 
-## 2. D3b Non-CBTN Projects Intake Process
-This workflow supports non-CBTN D3b-managed projects.
-The workflow includes:
-  - Study Intake
-  - Sample Intake
-  - Dewrangle ID Minting
+## Workflow Guides
 
-### 2.1 Study Intake Process
+### 1. CBTN Sample ID Minting
 
-##### Step 1: Prepare Input Study Manifest
-Create a manifest useing the study manifest template: [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
+Designed for CBTN projects where participant and specimen metadata already exist in the D3b DWH (`prod_access.participants`, `prod_access.specimen`).
 
-**Required fields:**
-- study_name
-- program
+#### Step 1 — Prepare input manifest
 
-##### Step 2: Ingest Study Metadata into the D3b DWH
-```bash
-# save study manifest
-python source_metadata_intake.py \
---env qa \
---db_type d3b \
---source_type study \
---manifest test_data/test_study_manifest.csv
-```
+Use the template: [`manifests/cbtn_sample_participants.csv`](manifests/cbtn_sample_participants.csv)
 
-**Functionality**
-- Check whether study records already have minted IDs in the D3b DWH
-- If not:
-  - Save study metadata into the D3b DWH:
-    - (test)  `huangx_dev_schema_dgd_workflow.src_study_manifests`
-    - (prod)  `src_d3b_file_mgmt_manifests.src_study_manifests`
-  - Generate a study manifest for ID minting:
-    - `study_metadata_for_id_minting.csv`
+| Minting Type | Required Fields |
+|---|---|
+| Participant ID | `case_id` |
+| Specimen ID | `sample_id`, `aliquot_id` |
+| Both | `case_id`, `sample_id`, `aliquot_id` |
 
-Example Logs:
-```
-2026-05-03 03:59:26 | INFO | ✅ Insert 2 rows into huangx_dev_schema_dgd_workflow.src_study_manifests
-2026-05-03 03:59:26 | INFO | ✅ Generated study_metadata_for_id_minting.csv for dewrangle ID minting.
-```
-
-##### Step 3: Run Study ID Minting
-Prepare study ID minting manifest, use either:
-- The output manifest from step 2, or
-- A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
-  - `fhirResourceType = 'ResearchStudy'`
-
-**Run**:
-```bash
-# study id minting
-python org_globalids_mint.py \
---env qa \
---db_type d3b \
---manifest study_metadata_for_id_minting.csv
-```
-
-**Output**:
-- Dewrangle study IDs are generated
-- Dewrangle report is saved into the D3b DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.dewrangle_ids`
-  - (prod)  `src_dewrangle_identifiers.dewrangle_ids`
-
-Example Logs:
-```
-🧪 Using test-dewrangle-ids organization for ID minting
-✅ Manifest read successfully with 2 rows.
-...
-...
-...
-📥 Downloaded job global IDs report: /home/ubuntu/work/github/dewrangle-id-minting-process/data/dewrangle-job-globalids-20260503-0420.csv
-🗂️ Saving dewrangle IDs report to DB...
-✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
-🎉 All completed!
-```
-### 2.2 Sample Intake Process
-
-##### Step 1: Prepare Input Sample Manifest
-
-Create a manifest using the sample template: [`manifests/sample_manifest_template.csv`](manifests/sample_manifest_template.csv)
-
-Required fields:
-`Required_fields = ["study_id", "case_id", "sample_id", "aliquot_id"]`
-
-- `case_id` will be used for participant id minting
-- `aliquot_id` will be used for biospecimen id minting
-
-
-##### Step 2: Ingest Sample Metadata into the D3b DWH
-```bash
-# save sample manifest
-python source_metadata_intake.py \
---env qa \
---db_type d3b \
---source_type sample \
---manifest test_data/test_sample_manifest.csv
-```
-
-**Functionality**
-- Check whether sample records already have minted IDs in the D3b DWH
-- If not:
-  - Save sample metadata into the D3b DWH:
-    - (test)  `huangx_dev_schema_dgd_workflow.src_sample_manifests`
-    - (prod)  `src_d3b_file_mgmt_manifests.src_sample_manifests`
-  - Generate a sample manifest for ID minting:
-    - `sample_metadata_for_id_minting.csv`
-      - `descriptor = case_id || ';' || study_id`
-      - `descriptor = aliquot_id || ';' || study_id`
-
-Example Logs:
-```
-2026-05-03 04:33:05 | INFO | ✅ Insert 5 rows into huangx_dev_schema_dgd_workflow.src_sample_manifests
-2026-05-03 04:33:05 | INFO | ✅ Generated sample_metadata_for_id_minting.csv for dewrangle ID minting.
-```
-##### Step 3: Run Sample ID Minting
-Prepare sample ID minting manifest, use either:
-- Output from step 2, or
-- A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
-  - **Paticipant ID minting:** 
-    - `fhirResourceType = 'Patient'`
-    - `descriptor = case_id || ';' || study_id`
-  - **Biospecimen ID minting: **
-    - `ffhirResourceType = 'Specimen'`
-    - `descriptor = aliquot_id || ';' || study_id`
-
-**⚠️ Note:** Include `study_id` in the descriptor to ensure the correct study can always be identified, especially when the same `case_id` or `aliquot_id` appears across different studies.
-
-**Run**:
+#### Step 2 — Validate and prepare minting manifest
 
 ```bash
-# sample id minting
-python org_globalids_mint.py \
---env qa \
---db_type d3b \
---manifest sample_metadata_for_id_minting.csv
+d3b-dewrangle cbtn-prepare \
+    --manifest manifests/cbtn_sample_participants.csv \
+    --type both
 ```
 
-Output:
-- Dewrangle sample IDs are generated
-- Dewrangle report is saved into the D3b DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.dewrangle_ids`
-  - (prod)  `src_dewrangle_identifiers.dewrangle_ids`
+Outputs:
+- `cbtn_participants_specimens_to_mint.csv` → ready for ID minting
+- `cbtn_participants_specimens_minted_in_dwh.csv` → already minted
+- `cbtn_participants_missing_in_dwh.csv` → `case_id` not found
+- `cbtn_specimens_missing_in_dwh.csv` → `sample_id` / `aliquot_id` not found
 
-Example Logs:
-```
-🧪 Using test-dewrangle-ids organization for ID minting
-✅ Manifest read successfully with 9 rows.
-...
-...
-...
-📥 Downloaded job global IDs report: /home/ubuntu/work/github/dewrangle-id-minting-process/data/dewrangle-job-globalids-20260503-0526.csv
-🗂️ Saving dewrangle IDs report to DB...
-✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
-🎉 All completed!
-```
-
-## 3. Kids First and INCLUDE Project Intake Process
-This workflow supports Kids First and INCLUDE projects using the DCC DWH.
-The workflow depends on whether participant/specimen metadata already exists in the DCC DWH.
-
-### 3.1 Study Intake Process
-
-##### Step 1: Prepare Input Study Manifest
-Create a manifest useing the study manifest template: [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
-
-**Required fields:**
-- study_name
-- program
-
-##### Step 2: Ingest Study Metadata into the DCC DWH
-```bash
-# save study manifest
-python source_metadata_intake.py \
---env qa \
---db_type dcc \
---source_type study \
---manifest test_data/test_study_manifest.csv
-```
-
-**Functionality**
-- Check whether study records already have minted IDs in the DCC DWH
-- If not:
-  - Save study metadata into the DCC DWH:
-  - Generate a study manifest for ID minting:
-    - `study_metadata_for_id_minting.csv`
-
-
-##### Step 3: Run Study ID Minting
-Prepare sample ID minting manifest, use either:
-- Output from step 2, or
-- A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
-  - `fhirResourceType = 'ResearchStudy'`
-
-**Run**
-```bash
-# study id minting
-python org_globalids_mint.py \
---env qa \
---db_type dcc \
---manifest study_metadata_for_id_minting.csv
-```
-
-**Output**:
-- Dewrangle study IDs are generated
-- Dewrangle report is saved into the DCC DWH
-  
-### 3.2 Sample Intake Process
-
-#### Scenario A — Sample Metadata Already Exists in the DCC DWH
-- Skip sample metadata ingestion step
-- Proceed directly to `Step 3: Run Sample ID minting`
-
-#### Scenario B — Sample Metadata Does NOT Exist in the DCC DWH
-- Perform sample metadata ingestion into the DCC DWH
-- Then proceed to the Dewrangle Sample ID Minting Process
-
-##### Step 1: Prepare Input Sample Manifest
-Create a manifest using the sample template: [`manifests/sample_manifest_template.csv`](manifests/sample_manifest_template.csv)
-
-Required fields:
-`Required_fields = ["study_id", "case_id", "sample_id", "aliquot_id"]`
-
-
-##### Step 2: Ingest Sample Metadata into the DCC DWH
-```bash
-# save sample manifest
-python source_metadata_intake.py \
---env qa \
---db_type d3b \
---source_type sample \
---manifest test_data/test_sample_manifest.csv
-```
-
-**Functionality**
-- Check whether sample records already have minted IDs in the D3b DWH
-- If not:
-  - Save sample metadata into the D3b DWH:
-    - (test)  `huangx_dev_schema_dgd_workflow.src_sample_manifests`
-    - (prod)  `src_d3b_file_mgmt_manifests.src_sample_manifests`
-  - Generate a sample manifest for ID minting:
-    - `sample_metadata_for_id_minting.csv`
-      - `descriptor = case_id || ';' || study_id`
-      - `descriptor = aliquot_id || ';' || study_id`
-
-
-##### Step 3: Run Sample ID minting
-Prepare sample ID minting manifest, use either:
-- Output from step 2, or
-- A manually prepared manifest based on: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
-  - **Paticipant ID minting:** 
-    - `fhirResourceType = 'Patient'`
-    - `descriptor = case_id || ';' || study_id`
-  - **Biospecimen ID minting: **
-    - `ffhirResourceType = 'Specimen'`
-    - `descriptor = aliquot_id || ';' || study_id`
-
-**⚠️ Note:** Include `study_id` in the descriptor to ensure the correct study can always be identified, especially when the same `case_id` or `aliquot_id` appears across different studies.
-
-**Run**
+#### Step 3 — Mint IDs
 
 ```bash
-# sample id minting
-python org_globalids_mint.py \
---env qa \
---db_type dcc \
---manifest sample_metadata_for_id_minting.csv
+d3b-dewrangle global-id-mint \
+    --env qa --db d3b \
+    --manifest cbtn_participants_specimens_to_mint.csv
 ```
 
-Output:
-- Dewrangle sample IDs are generated
-- Dewrangle report is saved into the DCC DWH
+**Output:**
+- Dewrangle IDs generated
+- Report saved to DWH (test → `huangx_dev_schema_dgd_workflow.dewrangle_ids`, prod → `src_dewrangle_identifiers.dewrangle_ids`)
 
+---
 
-## 4. File Intake Process (All Projects)
-All file metadata is ingested and stored in the **D3b Data Warehouse (DWH)**, regardless of project type (CBTN, D3b non-CBTN, or Kids First & INCLUDE).
+### 2. D3b Non-CBTN Project Intake
 
-### 4.1 Source File Intake Process
+For other D3b-managed projects that require metadata ingestion before ID minting.
 
-#### Step 1: Run DFF Data Transfer Pipeline
-- Refer to the [d3b-data-transfer-pipeline](https://github.com/d3b-center/d3b-data-transfer-pipeline) repository for detailed instructions.
+#### 2.1 Study Intake
 
-Output:
-- File metadata is saved into the DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.src_file_manifests`
-  - (prod)  `src_d3b_file_mgmt_manifests.{src_file_manifests_xxx}`
+**Step 1 — Prepare study manifest** 
+Use the template [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
 
+Required fields: `study_name`, `program`
 
-#### Step 2: Dewrangle Source File ID Minting
-Create a manifest useing the source file manifest template: [`manifests/dewrangle_id_minting_source_files.csv`](`manifests/dewrangle_id_minting_source_files.csv)
-- Required fields:
-  - `study_id`
-  - `file_name`
-  - `dt_id`
-  - `fhirResourceType`
-  - `descriptor`
-  - `descriptorState`
-
-**Run**
-```bash
-# source file id minting
-python org_globalids_mint.py \
---env qa \
---db_type d3b \
---save-dt-record \
---manifest test_data/source_file_metadata_for_id_minting.csv
-```
-
-| Argument | Description |
-|----------|-------------|
-| `--save-dt-record` | Only required for source file ID minting, saves the data transfer mapping record to the DWH. |
-
-Output:
-- Dewrangle file IDs are generated
-- Dewrangle report is saved into the DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.dewrangle_ids`
-  - (prod)  `src_dewrangle_identifiers.dewrangle_ids`
-- Source data transfer mapping records are saved into the DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.data_transfer_file_mapping`
-  - (prod)  `src_dewrangle_identifiers.data_transfer_file_mapping`
-
-Example Logs:
-```
-🧪 Using test-dewrangle-ids organization for ID minting
-✅ Manifest read successfully with 6 rows.
-...
-...
-...
-📥 Downloaded job global IDs report: /home/ubuntu/work/github/dewrangle-id-minting-process/data/dewrangle-job-globalids-20260503-0601.csv
-🗂️ Saving dewrangle IDs report to DB...
-✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
-🗂️ Saving Data Transfer Records to DB...
-✅ Insert completed for huangx_dev_schema_dgd_workflow.data_transfer_file_mapping
-🎉 All completed!
-```
-### 4.2 Harmonized File Intake Process
-
-##### Step 1: Prepare harmonized data input manifest
-- Create a manifest useing the harmonized file manifest template: [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
-  - `fhirResourceType = 'DoucmentReference'`
-
-##### Step 2: Run ID minting
+**Step 2 — Ingest into DWH**
 
 ```bash
-# harmonized file id minting
-python org_globalids_mint.py \
---env qa \
---db_type d3b \
---manifest harmonized_file_id_minting.csv
+d3b-dewrangle source-intake \
+    --env qa --db d3b \
+    --type study \
+    --manifest manifests/study_intake_manifest.csv
 ```
 
-Output:
-- Dewrangle file IDs are generated
-- Dewrangle report is saved into DWH
-  - (test)  `huangx_dev_schema_dgd_workflow.dewrangle_ids`
-  - (prod)  `src_dewrangle_identifiers.dewrangle_ids`
+This generates `study_metadata_for_id_minting.csv` if studies are not yet minted.
+
+**Step 3 — Mint study IDs**
+
+```bash
+d3b-dewrangle global-id-mint \
+    --env qa --db d3b \
+    --manifest study_metadata_for_id_minting.csv
+```
+
+Use `fhirResourceType = 'ResearchStudy'` in the manifest.
+
+#### 2.2 Sample Intake
+
+**Step 1 — Prepare sample manifest**
+Use the template [`manifests/sample_manifest_template.csv`](manifests/sample_manifest_template.csv)
+
+Required fields: `study_id`, `case_id`, `sample_id`, `aliquot_id`
+
+**Step 2 — Ingest into DWH**
+
+```bash
+d3b-dewrangle source-intake \
+    --env qa --db d3b \
+    --type sample \
+    --manifest manifests/sample_intake_manifest.csv
+```
+
+This generates `sample_metadata_for_id_minting.csv`.
+
+**Step 3 — Mint sample IDs**
+
+```bash
+d3b-dewrangle global-id-mint \
+    --env qa --db d3b \
+    --manifest sample_metadata_for_id_minting.csv
+```
+
+Manifest tips:
+- **Participant:** `fhirResourceType = 'Patient'`, `descriptor = case_id;study_id`
+- **Biospecimen:** `fhirResourceType = 'Specimen'`, `descriptor = aliquot_id;study_id`
+
+> **⚠️ Important:** Always include `study_id` in the descriptor to disambiguate records across studies.
+
+---
+
+### 3. Kids First & INCLUDE Project Intake
+
+For KF/INCLUDE projects using the DCC DWH.
+
+#### 3.1 Study Create
+Creates a real study entity in Dewrangle and persists its global-descriptors report to the DWH.
+
+```bash
+d3b-dewrangle study-create \
+    --env qa --db dcc \
+    --study-name "My Study Name"
+```
+
+Functionality:
+1. Query Dewrangle API to check if this study already exist. And check if this study alreay exist in the DWH,
+2. If yes + in DWH → nothing to do
+3. If yes + missing from DWH → download report and save
+4. If no → create study → download report → save to DWH
+5. 
+#### 3.2 Sample ID Minting
+
+**Step 1 — Prepare sample manifest**
+
+Refer to the example manifest [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
+
+Manifest tips:
+- **Participant:** `fhirResourceType = 'Patient'`, `descriptor = case_id;study_id`
+- **Biospecimen:** `fhirResourceType = 'Specimen'`, `descriptor = aliquot_id;study_id`
+
+**Step 2 — Mint sample IDs**
+
+```bash
+d3b-dewrangle global-id-mint \
+    --env qa --db dcc \
+    --manifest manifests/dewrangle_id_minting_manifest.csv
+```
+---
+
+### 5. File Intake (All Projects)
+
+All file metadata is stored in the **D3b DWH**, regardless of project type.
+
+#### 5.1 Source File Intake
+
+**Step 1 — Run the DFF Data Transfer Pipeline**
+- See [d3b-data-transfer-pipeline](https://github.com/d3b-center/d3b-data-transfer-pipeline) for instructions.
+
+**Step 2 — Mint source file IDs**
+
+Prepare a manifest using [`manifests/dewrangle_id_minting_source_files.csv`](manifests/dewrangle_id_minting_source_files.csv)
+
+Required fields: `study_id`, `file_name`, `dt_id`, `fhirResourceType`, `descriptor`, `descriptorState`
+
+```bash
+d3b-dewrangle global-id-mint \
+    --env qa --db d3b \
+    --save-dt-record \
+    --manifest test_data/source_file_metadata_for_id_minting.csv
+```
+
+**Output:**
+- Dewrangle file IDs generated
+- Report saved to DWH (`dewrangle_ids` table)
+- Data transfer mapping saved to DWH (`data_transfer_file_mapping` table)
+
+#### 5.2 Harmonized File Intake
+
+Prepare a manifest using [`manifests/dewrangle_id_minting_manifest.csv`](manifests/dewrangle_id_minting_manifest.csv)
+- `fhirResourceType = 'DocumentReference'`
+
+```bash
+d3b-dewrangle global-id-mint \
+    --env qa --db d3b \
+    --manifest harmonized_file_id_minting.csv
+```
+
+---
+
+## Global ID Check & Update
+
+### Check a specific global ID
+
+Query Dewrangle for a single global ID and download its full record (study, descriptors, timestamps, creators).
+
+```bash
+d3b-dewrangle global-id-check \
+    --env qa \
+    --id sd-xxxxxx
+```
+
+**Output CSV columns:**
+- `globalId`, `studyGlobalId`, `studyName`
+- `fhirResourceType`, `descriptor`, `descriptorState`
+- `globalIdCreatedAt`, `globalIdCreatedBy`
+- `descriptorCreatedAt`, `descriptorCreatedBy`
+
+### Update specific global ID records
+
+Upload a manifest containing the global IDs to update, trigger an upsert in Dewrangle, then replace the corresponding records in the DWH.
+
+**Required manifest columns:**
+- `globalId`, `fhirResourceType`, `descriptor`, `descriptorState`
+
+**Optional:** `studyGlobalId`, `studyName`
+
+```bash
+d3b-dewrangle global-id-update \
+    --env qa --db d3b \
+    --manifest global_id_update.csv
+```
+
+**Behavior:**
+1. Upload manifest → trigger Dewrangle `globalIdentifierUpsert`
+2. Download **filtered** organization global identifiers (only the globalIds from your manifest)
+3. Delete existing DB records for those globalIds
+4. Insert the freshly downloaded records into the DWH
+
+---
+

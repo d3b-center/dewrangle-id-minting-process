@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "d3b-dewrangle"
+version = "1.0.0"
+description = "Unified CLI for Dewrangle ID minting workflows"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "pandas",
+    "psycopg2-binary",
+    "requests",
+    "gql[aiohttp]",
+    "sqlalchemy",
+]
+
+[project.scripts]
+d3b-dewrangle = "cli_entrypoint:main"
+
+[tool.setuptools]
+py-modules = ["cli_entrypoint"]
+
+[tool.setuptools.packages.find]
+where = ["d3b-dewrangle-cli"]
+include = ["scripts*", "src*"]

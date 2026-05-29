@@ -1,6 +1,11 @@
+import sys
+from pathlib import Path
+
+# Ensure project root is on path for src/ imports
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import argparse
 import time
-import sys
 import os
 import pandas as pd
 import psycopg2
@@ -9,7 +14,7 @@ from psycopg2 import OperationalError
 import logging
 from typing import List, Optional
 from pprint import pformat
-from env_config import config
+from src.env_config import config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -201,7 +206,7 @@ def main():
         help="Input source metadata type, study or sample.",
     )
     parser.add_argument(
-        "--db_type",
+        "--db",
         required=True,
         choices=["d3b", "dcc"],
         help="Database warehouse type (d3b or dcc). Ddetermines which warehouse connection and source metadata tables are used.",
@@ -210,7 +215,7 @@ def main():
 
     env_type = args.env.lower()
     source_type = args.source_type.lower()
-    database_type = args.db_type.lower()
+    database_type = args.db.lower()
 
     # ======================================
     # ENV CONFIG
