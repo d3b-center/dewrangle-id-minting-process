@@ -56,7 +56,7 @@ d3b-dewrangle --help
 
 All credentials and environment-specific settings are loaded from [**`configs/env_setting`**](configs/env_setting).
 
-> If you don't have access to the default enviroment, request them from the admin team.
+> If you don't have access to the default environment settings, request access from the admin team.
 
 ### Load configuration before every run
 
@@ -137,7 +137,7 @@ d3b-dewrangle global-id-mint \
 
 **Output:**
 - Dewrangle IDs generated
-- Report saved to DWH (test → `huangx_dev_schema_dgd_workflow.dewrangle_ids`, prod → `src_dewrangle_identifiers.dewrangle_ids`)
+- Report saved to DWH (QA / test schema → `huangx_dev_schema_dgd_workflow.dewrangle_ids`, prod → `src_dewrangle_identifiers.dewrangle_ids`)
 
 ---
 
@@ -147,7 +147,7 @@ For other D3b-managed projects that require metadata ingestion before ID minting
 
 #### 2.1 Study Intake
 
-**Step 1 — Prepare study manifest** 
+**Step 1 — Prepare study manifest**
 Use the template [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
 
 Required fields: `study_name`, `program`
@@ -211,7 +211,7 @@ Manifest tips:
 
 For KF/INCLUDE projects using the DCC DWH.
 #### (Optional) Study Intake
-If study metadata not exist in the DCC DWH, you could perform the study metadata intake process.
+If study metadata does not exist in the DCC DWH, perform the study metadata intake process.
 Use the template [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
 
 Required fields: `study_name`, `program`
@@ -238,6 +238,7 @@ Functionality:
 2. If exists in Dewrangle + in DWH → nothing to do
 3. If exists in Dewrangle + missing from DWH → download report and save
 4. If not exists → create study → download report → save to DWH
+
 #### 3.2 Sample ID Minting
 
 **Step 1 — Prepare sample manifest**
@@ -338,4 +339,5 @@ d3b-dewrangle global-id-update \
 
 
 ## Test Data & Logs
-All test data in [test_data](test_data) folder; All logs in [logs_out](test_data/logs_output)
+
+All test data is in the [test_data](test_data) folder. All logs are in [logs_output](test_data/logs_output).
