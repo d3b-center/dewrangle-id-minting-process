@@ -1,0 +1,2 @@
+fhirResourceType,descriptor,descriptorState
+DoucmentReference,s3://test-prd-bucket/test_harmonized_123_test.txt,ACTIVE

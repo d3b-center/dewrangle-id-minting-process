@@ -113,6 +113,12 @@ def main():
     if missing_columns:
         raise ValueError(f"Manifest is missing required columns: {missing_columns}")
 
+    if args.save_dt_record:
+        plus_columns = ["study_id", "file_name", "dt_id"]
+        missing = [col for col in plus_columns if col not in manifest_df.columns]
+        if missing:
+            raise ValueError(f"Manifest missing columns for saving DT records: {missing}")
+
     print(f"✅ Manifest read successfully with {manifest_df.shape[0]} rows.")
 
     # --- Step 2: Connect to DB ---
@@ -161,11 +167,6 @@ def main():
 
         # --- Step 8: Optionally save Data Transfer mapping ---
         if args.save_dt_record:
-            plus_columns = ["study_id", "file_name", "dt_id"]
-            missing = [col for col in plus_columns if col not in manifest_df.columns]
-            if missing:
-                raise ValueError(f"Manifest missing columns for saving DT records: {missing}")
-
             print("🗂️ Saving Data Transfer Records to DB...")
             data_transfer_mapping_config = db_config[env_type]["data_transfer_file_mapping"]
             save_data_transfer_mapping(conn, filepath, manifest_df, data_transfer_mapping_config)

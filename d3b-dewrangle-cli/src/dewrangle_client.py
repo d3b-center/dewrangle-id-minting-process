@@ -264,15 +264,19 @@ def send_request(
         if not wait_for_content or resp.text.strip():
             return resp
 
-        # Check if content size stabilized
-        current_size = len(resp.text)
-        if current_size == prev_size:
-            return resp
-        prev_size = current_size
+        # Else, check the size and wait if the content is still increasing
+        if resp.text.strip():
+            current_size = len(resp.text)
+            if current_size == prev_size:
+                break
+            prev_size = current_size
 
         # Wait and retry
         if waited >= max_wait:
-            raise TimeoutError(f"❌ Response empty after waiting {max_wait}s")
+            raise TimeoutError(
+                f"The report is still empty after waiting {max_wait}s. "
+                "Please check your input manifest for any typos or formatting issues, then try again."
+            )
         print(f"⏳ Response empty. Waiting {poll_interval}s...")
         time.sleep(poll_interval)
         waited += poll_interval
@@ -394,8 +398,6 @@ def create_org_global_ids(
         print("Waiting for job to complete...")
         time.sleep(5)
         break
-
-    print(f"✅ Job completed at: {job.get('completedAt')}")
     return job_id
 
 
@@ -471,7 +473,7 @@ def update_org_global_ids(
     """
     file_id = upload_org_file(organization_id, manifest_path)
     job_id = create_org_global_ids(organization_id, file_id)
-    report_path = download_job_report(organization_id, job_id, output_dir=output_dir)
+    report_path = download_job_report(job_id, organization_id, output_dir=output_dir)
     return report_path
 
 

@@ -2,4 +2,4 @@ fhirResourceType,descriptor,descriptorState
 ResearchStudy,KF test,ACTIVE
 Patient,test_pt_001;sd-001,ACTIVE
 Specimen,test_bs_001;sd-001,ACTIVE
-DoucmentReference,harmonized_test_001.txt,ACTIVE
+DocumentReference,harmonized_test_001.txt,ACTIVE

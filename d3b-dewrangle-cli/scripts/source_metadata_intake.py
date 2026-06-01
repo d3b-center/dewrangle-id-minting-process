@@ -79,7 +79,14 @@ def connect_to_database(db_host, db_name, db_user, db_port,db_password):
         )
 
     try:
-        conn = psycopg2.connect(**db_config)
+        conn = psycopg2.connect(
+            dbname=db_name,
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port
+        )
+        logger.info(f"✅ Successfully connected to database!")
         return conn
 
     except OperationalError as e:
@@ -317,8 +324,13 @@ def main():
         mint_df = output_df.copy()
     
     if not mint_df.empty:
-        mint_df.to_csv(f"{source_type}_metadata_for_id_minting.csv", index=False)
-        logger.info(f"✅ Generated {source_type}_metadata_for_id_minting.csv for dewrangle ID minting.")
+        if database_type == "d3b":
+            mint_df.to_csv(f"{source_type}_metadata_for_id_minting.csv", index=False)
+            logger.info(f"✅ Generated {source_type}_metadata_for_id_minting.csv for dewrangle ID minting.")
+        elif database_type == "dcc":
+            logger.info(
+                f"✅ Successfully loaded the {source_type} metadata into the DCC data warehouse")
+        
     else:
         logger.info(f"✅ No new descriptors to mint IDs.")
     

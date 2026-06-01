@@ -32,10 +32,7 @@ def get_db_config(database_type: str):
 # ======================================
 # Connection
 # ======================================
-def connect_to_database(db_host, db_name, db_user, db_port, db_password):
-    """
-    Establish a connection to the PostgreSQL database.
-    """
+def connect_to_database(db_host, db_name, db_user, db_port,db_password):
     db_config = {
         "host": db_host,
         "dbname": db_name,
@@ -44,6 +41,7 @@ def connect_to_database(db_host, db_name, db_user, db_port, db_password):
         "password": db_password,
     }
 
+    # Mask password for display
     display = {
         k: ("*" * len(v) if k == "password" and v else v)
         for k, v in db_config.items()
@@ -56,14 +54,21 @@ def connect_to_database(db_host, db_name, db_user, db_port, db_password):
         )
 
     try:
-        conn = psycopg2.connect(**db_config)
+        conn = psycopg2.connect(
+            dbname=db_name,
+            user=db_user,
+            password=db_password,
+            host=db_host,
+            port=db_port
+        )
+        print(f"✅ Successfully connected to database!")
         return conn
+
     except OperationalError as e:
         raise RuntimeError(
             "❌ Failed to connect to database:\n"
             f"{str(e)}\nConfig: {pformat(display)}"
         )
-
 
 # ======================================
 # Existence Checks

@@ -92,8 +92,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    print(args.org_message)
-
+    
     env_type = args.env.lower()
     database_type = args.db.lower()
     db_config = get_db_config(database_type)
@@ -112,14 +111,14 @@ def main():
     # Extract list of globalIds to sync later
     target_global_ids = list(manifest_df["globalId"].dropna().astype(str).unique())
 
-    # # Connect to DB
-    # conn = connect_to_database(
-    #     db_host=db_config["db_host"],
-    #     db_name=db_config["db_name"],
-    #     db_user=db_config["db_user"],
-    #     db_port=db_config["db_port"],
-    #     db_password=db_config["db_password"],
-    # )
+    # Connect to DB
+    conn = connect_to_database(
+        db_host=db_config["db_host"],
+        db_name=db_config["db_name"],
+        db_user=db_config["db_user"],
+        db_port=db_config["db_port"],
+        db_password=db_config["db_password"],
+    )
 
     try:
         # Step 1: Upload manifest and trigger upsert in Dewrangle
@@ -146,41 +145,40 @@ def main():
 
         print(f"🎯 Filtered {len(filtered_df)} records matching the manifest globalIds.")
 
-        # # Step 3: Replace records in DB
-        # dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
-        # schema_name = dewrangle_ids_config["schema"]
-        # table_name = dewrangle_ids_config["table"]
-        # primary_key_cols = dewrangle_ids_config["primary_key_cols"]
+        # Step 3: Replace records in DB
+        dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
+        schema_name = dewrangle_ids_config["schema"]
+        table_name = dewrangle_ids_config["table"]
+        primary_key_cols = dewrangle_ids_config["primary_key_cols"]
 
-        # # 4a. Delete existing records for the target globalIds
-        # delete_db_records_by_global_ids(conn, schema_name, table_name, target_global_ids)
+        # 4a. Delete existing records for the target globalIds
+        delete_db_records_by_global_ids(conn, schema_name, table_name, target_global_ids)
 
-        # # 4b. Align DataFrame columns to the existing table schema
-        # table_cols = get_table_columns(conn, schema_name, table_name)
-        # if table_cols:
-        #     # Keep only columns that exist in the table; add missing ones as empty strings
-        #     aligned_df = pd.DataFrame()
-        #     for col in table_cols:
-        #         if col in filtered_df.columns:
-        #             aligned_df[col] = filtered_df[col]
-        #         else:
-        #             aligned_df[col] = ""
-        #     filtered_df = aligned_df
+        # 4b. Align DataFrame columns to the existing table schema
+        table_cols = get_table_columns(conn, schema_name, table_name)
+        if table_cols:
+            # Keep only columns that exist in the table; add missing ones as empty strings
+            aligned_df = pd.DataFrame()
+            for col in table_cols:
+                if col in filtered_df.columns:
+                    aligned_df[col] = filtered_df[col]
+                else:
+                    aligned_df[col] = ""
+            filtered_df = aligned_df
 
-        # # 4c. Insert the downloaded records
-        # print("🗂️ Inserting updated records into DB...")
-        # save_df_to_db(
-        #     conn,
-        #     filtered_df,
-        #     schema_name,
-        #     table_name,
-        #     primary_key_cols,
-        #     on_conflict="nothing",
-        # )
+        # 4c. Insert the downloaded records
+        print("🗂️ Inserting updated records into DB...")
+        save_df_to_db(
+            conn,
+            filtered_df,
+            schema_name,
+            table_name,
+            primary_key_cols,
+            on_conflict="nothing",
+        )
 
     finally:
-        print("done")
-        # conn.close()
+        conn.close()
 
     print("🎉 Global ID update completed!")
 

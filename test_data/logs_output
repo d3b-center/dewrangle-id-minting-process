@@ -1,0 +1,231 @@
+#! /bin/bash
+
+# -------------------------------------------------------------------------------------------
+# 1. Prepare CBTN Sample ID Minting
+# -------------------------------------------------------------------------------------------
+#
+$ d3b-dewrangle cbtn-prepare \
+    --manifest manifests/cbtn_sample_participants.csv \
+    --type both
+
+▶️  python3 dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/prepare_cbtn_sample_id_mint.py --manifest manifests/cbtn_sample_participants.csv --type both
+2026-06-01 06:51:35 | INFO | ✅ Saved file: cbtn_specimens_missing_in_dwh.csv
+2026-06-01 06:51:35 | INFO | ✅ Saved file: cbtn_participants_specimens_minted_in_dwh.csv
+2026-06-01 06:51:35 | INFO | ℹ️ No items need to be minted
+2026-06-01 06:51:35 | INFO | ✅ Completed Process!
+
+
+# -------------------------------------------------------------------------------------------
+# 2. D3b Non-CBTN Project Intake
+# -------------------------------------------------------------------------------------------
+#
+# =============================================================================
+# D3B Source Study Metadata Intake
+# =============================================================================
+#
+$ d3b-dewrangle source-intake \
+    --env qa --db d3b \
+    --type study \
+    --manifest test_data/src_study_intake_manifest_d3b.csv
+
+▶️ d3b-dewrangle-cli/scripts/source_metadata_intake.py --env qa --db d3b --source_type study --manifest test_data/src_study_intake_manifest_d3b.csv
+2026-06-01 06:15:58 | INFO | ✅ Successfully connected to database!
+2026-06-01 06:15:58 | INFO | ✅ Insert 1 rows into huangx_dev_schema_dgd_workflow.src_study_manifests
+2026-06-01 06:15:58 | INFO | ✅ Generated study_metadata_for_id_minting.csv for dewrangle ID minting.
+2026-06-01 06:15:58 | INFO | 🎉 All completed!
+
+#
+# =============================================================================
+# D3B Study ID Minting
+# =============================================================================
+#
+$ d3b-dewrangle global-id-mint \
+    --env qa --db d3b \
+    --manifest study_metadata_for_id_minting.csv
+
+▶️  d3b-dewrangle-cli/scripts/org_globalids_mint.py --env qa --db d3b --manifest study_metadata_for_id_minting.csv
+🧪 Using test-dewrangle-ids organization for ID minting
+✅ Manifest read successfully with 1 rows.
+✅ Successfully connected to database!
+🔗 Upload URL: https://dewrangle.com/api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/files/study_metadata_for_id_minting.csv
+🆔 Uploaded file ID: T3JnYW5pemF0aW9uRmlsZTowMTllODFkNS1mZjA4LTcwMjctYTdiYy1mZjZlYTdlNDdjNGU=
+✅ Uploaded file 'study_metadata_for_id_minting.csv' to organization successfully!
+🚀 Job submitted: Sm9iOmNtcHV0aXhyaTAwMHZqeDAxMHN5b3MwemY=
+Waiting for job to complete...
+✅ Job completed at: None
+🌐 Dewrangle job global-identifiers report URL: https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtcHV0aXhyaTAwMHZqeDAxMHN5b3MwemY=
+🧪 Using test-dewrangle-ids organization for ID minting
+✅ Manifest read successfully with 1 rows.
+✅ Successfully connected to database!
+🌐 Dewrangle job global-identifiers report URL: https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtcHV0aXhyaTAwMHZqeDAxMHN5b3MwemY=
+📥 Downloaded job global IDs report: dewrangle-job-globalids-20260601-0634.csv
+🗂️ Saving dewrangle IDs report to DB...
+✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
+🎉 All completed!
+
+#
+# =============================================================================
+# D3B Source Sample Metadata Intake
+# =============================================================================
+#
+$ d3b-dewrangle source-intake \
+    --env qa --db d3b \
+    --type sample \
+    --manifest test_data/src_sample_intake_manifest_d3b.csv
+
+▶️  python3 dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/source_metadata_intake.py --env qa --db d3b --source_type sample --manifest test_data/src_sample_intake_manifest_d3b.csv
+
+2026-06-01 06:40:57 | INFO | ✅ Successfully connected to database!
+2026-06-01 06:40:57 | INFO | ✅ Insert 1 rows into huangx_dev_schema_dgd_workflow.src_sample_manifests
+2026-06-01 06:40:57 | INFO | ✅ Generated sample_metadata_for_id_minting.csv for dewrangle ID minting.
+2026-06-01 06:40:57 | INFO | 🎉 All completed!
+
+#
+# =============================================================================
+# Sample ID Minting
+# =============================================================================
+#
+$ d3b-dewrangle global-id-mint \
+    --env qa --db d3b  \
+    --manifest sample_metadata_for_id_minting.csv
+
+▶️  python3 dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/org_globalids_mint.py --env qa --db d3b --manifest sample_metadata_for_id_minting.csv
+🧪 Using test-dewrangle-ids organization for ID minting
+✅ Manifest read successfully with 2 rows.
+✅ Successfully connected to database!
+🔗 Upload URL: https://dewrangle.com/api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/files/sample_metadata_for_id_minting.csv
+🆔 Uploaded file ID: T3JnYW5pemF0aW9uRmlsZTowMTllODFmMC01ZTUwLTc3OWMtYTczNC02ZDVmZTJkYTA4YjI=
+✅ Uploaded file 'sample_metadata_for_id_minting.csv' to organization successfully!
+🚀 Job submitted: Sm9iOmNtcHV1anpibTAwMGlsbDAxbGttM2lkOXQ=
+Waiting for job to complete...
+✅ Job completed at: None
+🌐 Dewrangle job global-identifiers report URL: https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtcHV1anpibTAwMGlsbDAxbGttM2lkOXQ=
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+📥 Downloaded job global IDs report: dewrangle-id-minting-process/dewrangle-job-globalids-20260601-0647.csv
+🗂️ Saving dewrangle IDs report to DB...
+✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
+🎉 All completed!
+
+
+
+# -------------------------------------------------------------------------------------------
+# 3. Kids First & INCLUDE Project Intake
+# -------------------------------------------------------------------------------------------
+#
+# =============================================================================
+# DCC Source Study Metadata Intake
+# =============================================================================
+#
+$ d3b-dewrangle source-intake \
+    --env qa --db dcc \
+    --type study \
+    --manifest test_data/src_study_intake_manifest_dcc.csv
+
+▶️  python github/dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/source_metadata_intake.py --env qa --db dcc --source_type study --manifest test_data/src_study_intake_manifest_dcc.csv
+2026-06-01 15:56:42 | INFO | ✅ Successfully connected to database!
+2026-06-01 15:56:43 | INFO | ✅ Insert 2 rows into dewrangle_wf_test.src_study_manifests
+2026-06-01 15:56:44 | INFO | ✅ Successfully loaded the study metadata into the DCC data warehouse
+2026-06-01 15:56:44 | INFO | 🎉 All completed!
+
+#
+# =============================================================================
+# DCC Dewrangle Study Create
+# =============================================================================
+#
+$ d3b-dewrangle study-create \
+    --env qa --db dcc \
+    --study-name "KF study test"
+
+▶️  python dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/create_dewrangle_kf_study.py --env qa --db dcc --study-name KF study test
+🧪 Using test-dewrangle-ids organization
+✅ Successfully connected to database!
+🔨 Study 'KF study test' not found in Dewrangle. Creating...
+✅ Created study 'KF study test' with globalId sd-wt6ig9yz8n
+📥 Study global IDs report saved at: dewrangle-id-minting-process/dewrangle-study-globalids-20260601-1558.csv
+🗂️ Saving study report to DB...
+✅ Insert completed for dewrangle_wf_test.dewrangle_ids
+🎉 Done!
+
+#
+# =============================================================================
+# DCC Source Sample ID Minting
+# =============================================================================
+#
+$ d3b-dewrangle global-id-mint
+    --env qa --db dcc \
+    --manifest test_data/sample_for_id_minting_dcc.csv
+
+
+▶️  python dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/org_globalids_mint.py --env qa --db dcc --manifest test_data/sample_for_id_minting_dcc.csv
+
+🧪 Using test-dewrangle-ids organization for ID minting
+✅ Manifest read successfully with 2 rows.
+✅ Successfully connected to database!
+🔗 Upload URL: https://dewrangle.com/api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/files/sample_for_id_minting_dcc.csv
+🆔 Uploaded file ID: T3JnYW5pemF0aW9uRmlsZTowMTllODIzNC0xMGI3LTc2MWQtODgwYi00MTBhYWVmNjkxNmQ=
+✅ Uploaded file 'sample_for_id_minting_dcc.csv' to organization successfully!
+🚀 Job submitted: Sm9iOmNtcHV4NzN6aDAwMTVqeDAxbTg0a3dtbDk=
+Waiting for job to complete...
+✅ Job completed at: None
+🌐 Dewrangle job global-identifiers report URL: https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtcHV4NzN6aDAwMTVqeDAxbTg0a3dtbDk=
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+📥 Downloaded job global IDs report: dewrangle-id-minting-process/dewrangle-job-globalids-20260601-1601.csv
+🗂️ Saving dewrangle IDs report to DB...
+✅ Insert completed for dewrangle_wf_test.dewrangle_ids
+🎉 All completed!
+
+
+#
+# -------------------------------------------------------------------------------------------
+# 3. Global ID Check & Update
+# -------------------------------------------------------------------------------------------
+#
+# =============================================================================
+# Global ID Check
+# =============================================================================
+#
+% d3b-dewrangle global-id-check \
+    --env qa \
+    --id bs-8qgqznk9bt
+
+▶️  python dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/global_id_check.py --id bs-8qgqznk9bt --env qa
+
+🧪 Using test-dewrangle-ids organization
+🔍 Looking up globalId: bs-8qgqznk9bt
+✅ Report saved: dewrangle-id-minting-process/dewrangle-global-id-bs-8qgqznk9bt-20260601-2019.csv
+
+
+#
+# =============================================================================
+# Global ID Update
+# =============================================================================
+#
+$ d3b-dewrangle global-id-update     --env qa --db d3b     --manifest test_data/globalid_update.csv
+
+▶️  python3 dewrangle-id-minting-process/d3b-dewrangle-cli/scripts/global_id_update.py --env qa --db d3b --manifest test_data/globalid_update.csv
+
+✅ Manifest read successfully with 2 rows.
+✅ Successfully connected to database!
+🔄 Updating Dewrangle global IDs...
+🔗 Upload URL: https://dewrangle.com/api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/files/globalid_update.csv
+🆔 Uploaded file ID: T3JnYW5pemF0aW9uRmlsZTowMTllODM0Ni01NDI4LTcxNzEtOTYyNC02MjQ0MDM1ZTk0NjY=
+✅ Uploaded file 'globalid_update.csv' to organization successfully!
+🚀 Job submitted: Sm9iOmNtcHY3d2JrYzAwMTRsbDAxaWRsNWxnYzY=
+Waiting for job to complete...
+🌐 Dewrangle job global-identifiers report URL: https://dewrangle.com//api/rest/organizations/T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA=/global-identifiers?job=Sm9iOmNtcHY3d2JrYzAwMTRsbDAxaWRsNWxnYzY=
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+⏳ Response empty. Waiting 5s...
+📥 Downloaded job global IDs report: dewrangle-id-minting-process/dewrangle-job-globalids-20260601-1301.csv
+📥 Downloading filtered organization global identifiers...
+🎯 Filtered 3 records matching the manifest globalIds.
+🗑️  Deleted 1 existing record(s) from huangx_dev_schema_dgd_workflow.dewrangle_ids
+🗂️ Inserting updated records into DB...
+✅ Insert completed for huangx_dev_schema_dgd_workflow.dewrangle_ids
+🎉 Global ID update completed!

@@ -158,7 +158,7 @@ Required fields: `study_name`, `program`
 d3b-dewrangle source-intake \
     --env qa --db d3b \
     --type study \
-    --manifest manifests/study_manifest_template.csv
+    --manifest test_data/src_study_intake_manifest_d3b.csv
 ```
 
 This generates `study_metadata_for_id_minting.csv` if studies are not yet minted.
@@ -186,7 +186,7 @@ Required fields: `study_id`, `case_id`, `sample_id`, `aliquot_id`
 d3b-dewrangle source-intake \
     --env qa --db d3b \
     --type sample \
-    --manifest manifests/sample_manifest_template.csv
+    --manifest test_data/src_sample_intake_manifest_d3b.csv
 ```
 
 This generates `sample_metadata_for_id_minting.csv`.
@@ -210,6 +210,19 @@ Manifest tips:
 ### 3. Kids First & INCLUDE Project Intake
 
 For KF/INCLUDE projects using the DCC DWH.
+#### (Optional) Study Intake
+If study metadata not exist in the DCC DWH, you could perform the study metadata intake process.
+Use the template [`manifests/study_manifest_template.csv`](manifests/study_manifest_template.csv)
+
+Required fields: `study_name`, `program`
+
+```bash
+d3b-dewrangle source-intake \
+    --env qa --db dcc \
+    --type study \
+    --manifest test_data/src_study_intake_manifest_dcc.csv
+```
+
 
 #### 3.1 Study Create
 Creates a real study entity in Dewrangle and persists its global-descriptors report to the DWH.
@@ -217,7 +230,7 @@ Creates a real study entity in Dewrangle and persists its global-descriptors rep
 ```bash
 d3b-dewrangle study-create \
     --env qa --db dcc \
-    --study-name "My Study Name"
+    --study-name "KF study test"
 ```
 
 Functionality:
@@ -240,7 +253,7 @@ Manifest tips:
 ```bash
 d3b-dewrangle global-id-mint \
     --env qa --db dcc \
-    --manifest manifests/dewrangle_id_minting_manifest.csv
+    --manifest test_data/sample_for_id_minting_dcc.csv
 ```
 ---
 
@@ -263,7 +276,7 @@ Required fields: `study_id`, `file_name`, `dt_id`, `fhirResourceType`, `descript
 d3b-dewrangle global-id-mint \
     --env qa --db d3b \
     --save-dt-record \
-    --manifest test_data/source_file_metadata_for_id_minting.csv
+    --manifest test_data/files_for_id_minting_source.csv
 ```
 
 **Output:**
@@ -279,7 +292,7 @@ Prepare a manifest using [`manifests/dewrangle_id_minting_manifest.csv`](manifes
 ```bash
 d3b-dewrangle global-id-mint \
     --env qa --db d3b \
-    --manifest harmonized_file_id_minting.csv
+    --manifest test_data/files_for_id_minting_harmonization.csv
 ```
 
 ---
@@ -314,7 +327,7 @@ Upload a manifest containing the global IDs to update, trigger an upsert in Dewr
 ```bash
 d3b-dewrangle global-id-update \
     --env qa --db d3b \
-    --manifest global_id_update.csv
+    --manifest test_data/globalid_update.csv
 ```
 
 **Behavior:**
@@ -323,5 +336,6 @@ d3b-dewrangle global-id-update \
 3. Delete existing DB records for those globalIds
 4. Insert the freshly downloaded records into the DWH
 
----
 
+## Test Data & Logs
+All test data in [test_data](test_data) folder; All logs in [logs_out](test_data/logs_output)

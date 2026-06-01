@@ -1,0 +1,3 @@
+globalId,fhirResourceType,descriptor,descriptorState
+dr-h49hhc24p3,DocumentReference,s3://test-prd-bucket/test_harmonized_123_test.txt,INACTIVE
+dr-h49hhc24p3,DocumentReference,s3://update-test-prd-bucket/test_harmonized_123_test.txt,ACTIVE

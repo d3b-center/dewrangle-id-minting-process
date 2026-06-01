@@ -38,7 +38,7 @@ def run_script(name: str, args: List[str]) -> None:
     """Run a script from the project root with the given CLI args."""
     cmd = [sys.executable, str(PROJECT_ROOT / "scripts" / name), *args]
     print(f"\n▶️  {' '.join(cmd)}\n")
-    result = subprocess.run(cmd, cwd=PROJECT_ROOT)
+    result = subprocess.run(cmd)
     if result.returncode != 0:
         raise RuntimeError(f"❌ Command failed: {name}")
 
@@ -249,7 +249,6 @@ def main():
     }
 
     dispatch[args.command](args)
-    print("\n🎉 Done!")
 
 
 if __name__ == "__main__":
