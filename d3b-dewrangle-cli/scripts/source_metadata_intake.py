@@ -5,16 +5,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
-import time
-import os
 import pandas as pd
-import psycopg2
-from psycopg2.extras import execute_values
-from psycopg2 import OperationalError
 import logging
-from typing import List, Optional
-from pprint import pformat
 from src.env_config import config
+from src.db_utils import (
+    get_db_config,
+    connect_to_database,
+    get_table_columns,
+    check_db_records_exist,
+    save_df_to_db,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -28,15 +28,6 @@ logger = logging.getLogger(__name__)
 # ======================================
 # Load Correct Config
 # ======================================
-def get_db_config(database_type: str):
-    """
-    Return warehouse config based on project type.
-    """
-    if database_type == "d3b":
-        return config["db"]["d3b_warehouse"]
-    if database_type == "dcc":
-        return config["db"]["dcc_warehouse"]
-    raise ValueError(f"Unsupported database_type: {database_type}")
 def get_source_metadata_config(
     db_config: dict,
     env_type: str,
@@ -53,47 +44,6 @@ def get_source_metadata_config(
         raise ValueError(f"Unsupported source_type: {source_type}")
     
     return db_config[env_type][source_key]
-
-# ======================================
-# Database Helpers
-# ======================================
-def connect_to_database(db_host, db_name, db_user, db_port,db_password):
-    db_config = {
-        "host": db_host,
-        "dbname": db_name,
-        "user": db_user,
-        "port": db_port,
-        "password": db_password,
-    }
-
-    # Mask password for display
-    display = {
-        k: ("*" * len(v) if k == "password" and v else v)
-        for k, v in db_config.items()
-    }
-
-    if not all(db_config.values()):
-        raise ValueError(
-            "❌ Not enough inputs to connect to database!\n"
-            f"{pformat(display)}"
-        )
-
-    try:
-        conn = psycopg2.connect(
-            dbname=db_name,
-            user=db_user,
-            password=db_password,
-            host=db_host,
-            port=db_port
-        )
-        logger.info(f"✅ Successfully connected to database!")
-        return conn
-
-    except OperationalError as e:
-        raise RuntimeError(
-            "❌ Failed to connect to database:\n"
-            f"{str(e)}\nConfig: {pformat(display)}"
-        )
 
 # ======================================
 # VALIDATION
@@ -116,86 +66,6 @@ def validate_manifest(df, REQUIRED_FIELDS):
         )
 
 # ======================================
-# TABLE METADATA
-# ======================================
-def get_table_columns(conn, schema_name, table_name):
-    sql = """
-        SELECT column_name
-        FROM information_schema.columns
-        WHERE table_schema = %s
-          AND table_name = %s
-    """
-    with conn.cursor() as cur:
-        cur.execute(sql, (schema_name, table_name))
-        return [row[0] for row in cur.fetchall()]
-
-
-def check_db_records_exist(
-    conn,  # Accept the existing connection
-    schema_name: str,
-    table_name: str,
-    df: pd.DataFrame,
-) -> list:
-    """
-    Check if already registered in the Dewrangle.
-    """
-    # Extract descriptors from DataFrame to compare
-    descriptors_to_check = list(set(df["descriptor"].dropna()))
-    if not descriptors_to_check:
-        return pd.DataFrame()  # Return empty DataFrame if no descriptors
-
-    descriptors_to_check_string = ", ".join([f"'{descriptor}'" for descriptor in descriptors_to_check])
-    query = f"""
-        select *
-        from {schema_name}.{table_name}
-        where descriptor in ({descriptors_to_check_string})
-    """
-    df_existing_rows = pd.read_sql(query, conn)
-
-    # If matching records exist, return them
-    if not df_existing_rows.empty:
-        return df_existing_rows
-    else:
-        return pd.DataFrame()
-    
-# ======================================
-# SAVE TO DB
-# ======================================
-def save_df_to_db(conn, df, schema_name, table_name, primary_key_cols):
-    if df.empty:
-        logger.warning(f"⚠️ No valid columns to insert.")
-        return
-
-    cur = conn.cursor()
-
-    cols = list(df.columns)
-    cols_quoted = [f'"{c}"' for c in cols]
-    pk_cols_quoted = [f'"{c}"' for c in primary_key_cols]
-
-    df = df.astype(object).where(pd.notnull(df), None)
-    values = df.to_numpy().tolist()
-
-    insert_sql = f"""
-        INSERT INTO {schema_name}.{table_name} ({','.join(cols_quoted)})
-        VALUES %s
-        ON CONFLICT ({', '.join(pk_cols_quoted)}) DO NOTHING;
-    """
-    try:
-        execute_values(cur, insert_sql, values, page_size=1000)
-        conn.commit()
-        if cur.rowcount == 0:
-            logger.warning(f"⚠️ No new rows inserted (all duplicates).")
-        else:
-            logger.info(f"✅ Insert {cur.rowcount} rows into {schema_name}.{table_name}\n")
-    except Exception as e:
-        conn.rollback()
-        logger.error(f"❌ Insert failed: {e}")
-        raise
-
-    finally:
-        cur.close()
-
-# ======================================
 # MAIN
 # ======================================
 def main():
@@ -216,7 +86,7 @@ def main():
         "--db",
         required=True,
         choices=["d3b", "dcc"],
-        help="Database warehouse type (d3b or dcc). Ddetermines which warehouse connection and source metadata tables are used.",
+        help="Database warehouse type (d3b or dcc). Determines which warehouse connection and source metadata tables are used.",
     )
     args = parser.parse_args()
 
@@ -251,7 +121,7 @@ def main():
     validate_manifest(df, REQUIRED_FIELDS)
 
     # Connect to DB
-    conn = connect_to_database(db_host, db_name, db_user,db_port, db_password)
+    conn = connect_to_database(db_host, db_name, db_user, db_port, db_password)
 
     # Get DB table columns
     table_columns = get_table_columns(conn, source_schema, source_table)

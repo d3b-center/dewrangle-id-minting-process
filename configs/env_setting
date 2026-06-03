@@ -27,7 +27,7 @@ export DEWRANGLE_BASE_URL="https://dewrangle.com/"
 
 # ----- D3b Warehouse -----
 export D3B_WAREHOUSE_HOST="d3b-warehouse-aurora.cluster-cxxdzxepyea2.us-east-1.rds.amazonaws.com"
-export D3B_WAREHOUSE_PORT="5435"
+export D3B_WAREHOUSE_PORT="5432"
 export D3B_WAREHOUSE_DB_NAME="postgres"
 export D3B_WAREHOUSE_DB_USER=""         # <<<< FILL IN (if using D3B)
 export D3B_WAREHOUSE_DB_USER_PW=""      # <<<< FILL IN (if using D3B)
@@ -80,11 +80,11 @@ export QA_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE="data_transfer_file_mapping"
 # =============================================================================
 
 # ----- PROD (production) -----
-export PROD_DCC_WAREHOUSE_STUDY_SOURCE_SCHEMA=""
-export PROD_DCC_WAREHOUSE_STUDY_SOURCE_TABLE=""
+export PROD_DCC_WAREHOUSE_STUDY_SOURCE_SCHEMA=""         # <<<< FILL IN (if using DCC)
+export PROD_DCC_WAREHOUSE_STUDY_SOURCE_TABLE=""          # <<<< FILL IN (if using DCC)
 
-export PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_SCHEMA=""
-export PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_TABLE=""
+export PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_SCHEMA=""        # <<<< FILL IN (if using DCC)
+export PROD_DCC_WAREHOUSE_DEWRANGLE_IDS_TABLE=""         # <<<< FILL IN (if using DCC)
 
 # ----- QA (development / testing) -----
 # OR replace them with your own test environment

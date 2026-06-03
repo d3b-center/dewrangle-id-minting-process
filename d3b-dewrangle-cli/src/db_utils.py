@@ -106,13 +106,14 @@ def check_db_records_exist(
     df_existing_rows = pd.read_sql(query, conn, params=tuple(descriptors_to_check))
 
     if not df_existing_rows.empty:
-        timestamp = time.strftime("%Y%m%d-%H%M")
-        filename = f"existing-db-records-{timestamp}.csv"
-        os.makedirs(output_dir, exist_ok=True)
-        output_file = os.path.join(output_dir, filename)
+        if output_dir:
+            timestamp = time.strftime("%Y%m%d-%H%M")
+            filename = f"existing-db-records-{timestamp}.csv"
+            os.makedirs(output_dir, exist_ok=True)
+            output_file = os.path.join(output_dir, filename)
 
-        df_existing_rows.to_csv(output_file, index=False)
-        print(f"⚠️ Some records already exist in the database. Matching rows saved to: '{output_file}'.")
+            df_existing_rows.to_csv(output_file, index=False)
+            print(f"⚠️ Some records already exist in the database. Matching rows saved to: '{output_file}'.")
         return df_existing_rows
     else:
         return pd.DataFrame()
@@ -306,7 +307,9 @@ def save_df_to_db(
         """
 
     try:
-        execute_values(cur, insert_sql, df.to_records(index=False).tolist())
+        # Convert NaN → None so PostgreSQL inserts NULLs, not "nan" strings
+        df_clean = df.astype(object).where(pd.notnull(df), None)
+        execute_values(cur, insert_sql, df_clean.to_records(index=False).tolist())
         conn.commit()
         if cur.rowcount == 0:
             print(f"⚠️ No new rows inserted (all duplicates).")

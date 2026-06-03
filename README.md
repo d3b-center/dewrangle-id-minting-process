@@ -54,7 +54,7 @@ d3b-dewrangle --help
 
 ## Configuration
 
-All credentials and environment-specific settings are loaded from [**`configs/env_setting`**](configs/env_setting).
+All credentials and environment-specific settings are loaded from [**`configs/env_setting`**](configs/env_setting). Please fill in ALL required variables.
 
 > If you don't have access to the default environment settings, request access from the admin team.
 
