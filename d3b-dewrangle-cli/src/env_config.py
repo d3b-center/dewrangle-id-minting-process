@@ -50,23 +50,23 @@ config = {
             },
             "prod": {
                 "dewrangle_ids": {
-                    "schema": os.environ.get("D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA"),
-                    "table": os.environ.get("D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE"),
+                    "schema": os.environ.get("PROD_D3B_WAREHOUSE_DEWRANGLE_IDS_SCHEMA"),
+                    "table": os.environ.get("PROD_D3B_WAREHOUSE_DEWRANGLE_IDS_TABLE"),
                     "primary_key_cols": ["globalId", "studyGlobalId", "descriptor", "descriptorState"],
                 },
                 "data_transfer_file_mapping": {
-                    "schema": os.environ.get("D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA"),
-                    "table": os.environ.get("D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE"),
+                    "schema": os.environ.get("PROD_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_SCHEMA"),
+                    "table": os.environ.get("PROD_D3B_WAREHOUSE_DATA_TRANSFER_RECORD_TABLE"),
                     "primary_key_cols": ["global_id"],
                 },
                 "source_study_metadata": {
-                    "schema": os.environ.get("D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA"),
-                    "table": os.environ.get("D3B_WAREHOUSE_STUDY_SOURCE_TABLE"),
+                    "schema": os.environ.get("PROD_D3B_WAREHOUSE_STUDY_SOURCE_SCHEMA"),
+                    "table": os.environ.get("PROD_D3B_WAREHOUSE_STUDY_SOURCE_TABLE"),
                     "primary_key_cols": ["study_name", "program"],
                 },
                 "source_sample_metadata": {
-                    "schema": os.environ.get("D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA"),
-                    "table": os.environ.get("D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
+                    "schema": os.environ.get("PROD_D3B_WAREHOUSE_SAMPLE_SOURCE_SCHEMA"),
+                    "table": os.environ.get("PROD_D3B_WAREHOUSE_SAMPLE_SOURCE_TABLE"),
                     "primary_key_cols": ["study_id", "case_id", "sample_id", "aliquot_id"],
                 }
             },

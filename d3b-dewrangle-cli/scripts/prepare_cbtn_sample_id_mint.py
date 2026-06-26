@@ -100,34 +100,30 @@ def save_if_not_empty(df, path, columns=None):
     logger.info(f"✅ Saved file: {path}")
 
 def find_missing(input_df, db_df, key_cols, output_name):
-    input_keys = set(map(tuple, input_df[key_cols].dropna().values))
-    db_keys = set(map(tuple, db_df[key_cols].dropna().values))
+    input_keys = set(map(tuple, input_df[key_cols].dropna().astype(str).values))
+    db_keys = set(map(tuple, db_df[key_cols].dropna().astype(str).values))
     missing = input_keys - db_keys
     if missing:
         missing_df = pd.DataFrame(list(missing), columns=key_cols)
         save_if_not_empty(missing_df, output_name)
 
 def check_participants(conn, schema, table, df):
-    case_ids_df = df[['case_id']].dropna().drop_duplicates()
+    case_ids_df = df[['case_id']].dropna().astype(str).drop_duplicates()
 
     if case_ids_df.empty:
         logger.warning("⚠️ No valid case_ids found in manifest")
         return pd.DataFrame(), pd.DataFrame()
 
     case_ids_df.columns = ["research_id"]
-    case_ids_tuple = tuple(case_ids_df['research_id'])
-
-    # Fix single-value case
-    if len(case_ids_tuple) == 1:
-        case_ids_tuple = (case_ids_tuple[0],)
+    case_ids = case_ids_df['research_id'].tolist()
 
     sql = f"""
         SELECT research_study_name, research_id, kids_first_participant_id
         FROM {schema}.{table}
-        WHERE research_id IN %s
+        WHERE research_id = ANY(%s::text[])
     """
 
-    db_df = pd.read_sql(sql, conn, params=(case_ids_tuple,))
+    db_df = pd.read_sql(sql, conn, params=(case_ids,))
 
     # Track missing
     find_missing(
@@ -151,33 +147,52 @@ def check_participants(conn, schema, table, df):
     return to_mint, existing
 
 def check_specimens(conn, schema, table, df):
-    pairs_df = df[['sample_id', 'aliquot_id']].dropna().drop_duplicates()
+    pairs_df = df[['sample_id', 'aliquot_id']].dropna().drop_duplicates().copy()
 
     if pairs_df.empty:
         logger.warning("⚠️ No valid specimen pairs found in manifest")
         return pd.DataFrame(), pd.DataFrame()
 
-    pair_tuples = [tuple(x) for x in pairs_df.values]
+    # DWH aliquot_id is bigint, so manifest values must be numeric to match.
+    # Non-numeric text aliquot_ids cannot exist in DWH.
+    pairs_df['aliquot_id_numeric'] = pd.to_numeric(pairs_df['aliquot_id'], errors='coerce')
 
-    # Fix single tuple edge case
-    if len(pair_tuples) == 1:
-        pair_tuples = [pair_tuples[0]]
+    invalid_mask = pairs_df['aliquot_id_numeric'].isna()
+    invalid_pairs_df = pairs_df.loc[invalid_mask, ['sample_id', 'aliquot_id']].copy()
+
+    if not invalid_pairs_df.empty:
+        logger.warning(
+            f"⚠️ {len(invalid_pairs_df)} manifest aliquot_id values are not numeric "
+            "and cannot exist in DWH aliquot_id (bigint)"
+        )
+        save_if_not_empty(invalid_pairs_df, "cbtn_specimens_non_numeric_aliquot_id.csv")
+
+    valid_pairs_df = pairs_df.loc[~invalid_mask, ['sample_id', 'aliquot_id', 'aliquot_id_numeric']].copy()
+
+    if valid_pairs_df.empty:
+        logger.warning("⚠️ No valid numeric specimen pairs found in manifest")
+        return pd.DataFrame(), pd.DataFrame()
+
+    sample_ids = valid_pairs_df['sample_id'].astype(str).tolist()
+    aliquot_ids = valid_pairs_df['aliquot_id_numeric'].astype(int).tolist()
 
     sql = f"""
         SELECT research_study_name, sample_id, aliquot_id, kf_biospecimen_id
         FROM {schema}.{table}
-        WHERE (sample_id, aliquot_id) IN %s
+        WHERE (sample_id, aliquot_id) IN (
+            SELECT * FROM unnest(%s::text[], %s::bigint[]) AS t(sample_id, aliquot_id)
+        )
     """
 
     db_df = pd.read_sql(
         sql,
         conn,
-        params=(tuple(pair_tuples),)
+        params=(sample_ids, aliquot_ids)
     )
 
-    # Track missing
+    # Track missing (both non-numeric and valid-but-not-found rows)
     find_missing(
-        input_df=pairs_df,
+        input_df=pairs_df[['sample_id', 'aliquot_id']],
         db_df=db_df,
         key_cols=["sample_id", "aliquot_id"],
         output_name="cbtn_specimens_missing_in_dwh.csv"

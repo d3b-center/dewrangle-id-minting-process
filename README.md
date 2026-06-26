@@ -105,13 +105,13 @@ Designed for CBTN projects where participant and specimen metadata already exist
 
 #### Step 1 — Prepare input manifest
 
-Use the template: [`manifests/cbtn_sample_participants.csv`](manifests/cbtn_sample_participants.csv)
+Workflow input manifest example: [`manifests/cbtn_sample_participants.csv`](manifests/cbtn_sample_participants.csv)
 
-| Minting Type | Required Fields |
-|---|---|
-| Participant ID | `case_id` |
-| Specimen ID | `sample_id`, `aliquot_id` |
-| Both | `case_id`, `sample_id`, `aliquot_id` |
+| Minting Type | Manifest Required Fields | Argument |
+|---|---|---|
+| Participant ID | `case_id` | `--type participant` |
+| Specimen ID | `sample_id`, `aliquot_id` | `--type specimen` |
+| Both | `case_id`, `sample_id`, `aliquot_id` | `--type both` |
 
 #### Step 2 — Validate and prepare minting manifest
 
@@ -176,7 +176,8 @@ Use `fhirResourceType = 'ResearchStudy'` in the manifest.
 #### 2.2 Sample Intake
 
 **Step 1 — Prepare sample manifest**
-Use the template [`manifests/sample_manifest_template.csv`](manifests/sample_manifest_template.csv)
+Template for external: [`manifests/sample_manifest_template.csv`](manifests/sample_manifest_template.csv)
+Workflow input manifest example: [`test_data/src_sample_intake_manifest_d3b.csv`](test_data/src_sample_intake_manifest_d3b.csv)
 
 Required fields: `study_id`, `case_id`, `sample_id`, `aliquot_id`
 
