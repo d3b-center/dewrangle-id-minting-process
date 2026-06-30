@@ -13,13 +13,15 @@ Optional columns (to bring the ID into a specific study):
 
 Workflow:
   1. Upload the manifest and trigger globalIdentifierUpsert in Dewrangle.
-  2. Download the full organization global identifiers.
+  2. Download the full organization global identifiers report via REST.
   3. Filter for the globalIds present in the manifest.
   4. Delete existing DB records for those globalIds.
   5. Insert the downloaded records into the DB.
 """
 
+import os
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -30,7 +32,7 @@ import pandas as pd
 
 from src.dewrangle_client import (
     update_org_global_ids,
-    download_org_global_identifiers,
+    fetch_org_report_df,
 )
 from src.db_utils import (
     get_db_config,
@@ -127,17 +129,25 @@ def main():
             organization_id=args.organization_id,
             manifest_path=manifest_path,
             output_dir=args.output_dir,
+            raise_on_empty_report=False,
         )
 
-        # Step 2: Download filtered org global identifiers
-        print("📥 Downloading filtered organization global identifiers...")
-        full_report_path = download_org_global_identifiers(
-            organization_id=args.organization_id,
-            global_id=target_global_ids,
-            output_dir=args.output_dir,
-        )
+        # Step 2: Fetch full org report as a DataFrame, filter for target
+        # globalIds, and save only the filtered DataFrame locally.
+        print("📥 Fetching full organization global identifiers report...")
+        full_df = fetch_org_report_df(organization_id=args.organization_id)
+        print(f"📊 Full organization report has {len(full_df)} rows.")
 
-        filtered_df = pd.read_csv(full_report_path, keep_default_na=False)
+        filtered_df = full_df[full_df["globalId"].isin(target_global_ids)]
+
+        # Save only the filtered report.
+        output_dir = args.output_dir or os.getcwd()
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+        timestamp = time.strftime("%Y%m%d-%H%M")
+        filtered_filename = f"dewrangle-global-ids-{len(target_global_ids)}-filtered-{timestamp}.csv"
+        filtered_report_path = Path(output_dir) / filtered_filename
+        filtered_df.to_csv(filtered_report_path, index=False)
+        print(f"📥 Filtered global identifiers report saved at: {filtered_report_path}")
 
         if filtered_df.empty:
             print("⚠️ No matching records found in the downloaded report. Nothing to update in DB.")

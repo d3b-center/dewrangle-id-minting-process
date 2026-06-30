@@ -4,6 +4,7 @@ Dewrangle API client: GraphQL and REST helpers for ID minting operations.
 
 import os
 import time
+import asyncio
 import logging
 from pathlib import Path
 from typing import List, Optional, Union
@@ -66,7 +67,7 @@ def _init_graphql_client():
     )
 
 
-def exec_graphql_query(gql_query, variables=None, retries=3, backoff=2):
+def exec_graphql_query(gql_query, variables=None, retries=2, backoff=2):
     """
     Execute a GraphQL query or mutation using a cached gql Client.
     Automatically creates the client if it doesn't exist.
@@ -75,7 +76,7 @@ def exec_graphql_query(gql_query, variables=None, retries=3, backoff=2):
     Args:
         gql_query: gql(...) object or query string
         variables: Optional variables dict
-        retries: Number of retry attempts (default 3)
+        retries: Number of retry attempts (default 2)
         backoff: Seconds to wait between retries (multiplied by attempt number)
 
     Returns:
@@ -134,6 +135,17 @@ mutation GlobalIdentifierUpsert($input: GlobalIdentifierUpsertInput!) {
 }
 """)
 
+GET_JOB = gql("""
+query GetJob($id: ID!) {
+  node(id: $id) {
+    ... on Job {
+      id
+      completedAt
+    }
+  }
+}
+""")
+
 CREATE_KF_STUDY = gql("""
 mutation MyMutation($input: StudyCreateInput!) {
   studyCreate(input: $input) {
@@ -147,11 +159,11 @@ mutation MyMutation($input: StudyCreateInput!) {
 """)
 
 GET_ORGANIZATION_STUDIES = gql("""
-query MyQuery($organization_id: ID!) {
+query MyQuery($organization_id: ID!, $first: Int, $after: String) {
   node(id: $organization_id) {
     ... on Organization {
       id
-      studies {
+      studies(first: $first, after: $after) {
         edges {
           node {
             id
@@ -159,18 +171,22 @@ query MyQuery($organization_id: ID!) {
             globalId
           }
         }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
       }
     }
   }
 }
 """)
 
-GET_ORG_GLOBAL_IDENTIFIERS = gql("""
-query MyQuery($organization_id: ID!) {
+GET_ORG_GLOBAL_IDENTIFIERS_BY_ID = gql("""
+query MyQuery($organization_id: ID!, $filter: GlobalIdentifierFilter!) {
   node(id: $organization_id) {
     ... on Organization {
       id
-      globalIdentifiers {
+      globalIdentifiers(filter: $filter) {
         edges {
           node {
             globalId
@@ -205,7 +221,6 @@ query MyQuery($organization_id: ID!) {
 }
 """)
 
-
 # ======================================
 # HTTP Utility
 # ======================================
@@ -239,7 +254,6 @@ def send_request(
     status_code = 0
 
     waited = 0
-    prev_size = 0
 
     while True:
         try:
@@ -264,18 +278,10 @@ def send_request(
         if not wait_for_content or resp.text.strip():
             return resp
 
-        # Else, check the size and wait if the content is still increasing
-        if resp.text.strip():
-            current_size = len(resp.text)
-            if current_size == prev_size:
-                break
-            prev_size = current_size
-
         # Wait and retry
         if waited >= max_wait:
             raise TimeoutError(
-                f"The report is still empty after waiting {max_wait}s. "
-                "Please check your input manifest for any typos or formatting issues, then try again."
+                f"Response was empty after waiting {max_wait}s."
             )
         print(f"⏳ Response empty. Waiting {poll_interval}s...")
         time.sleep(poll_interval)
@@ -308,14 +314,22 @@ def download_job_report(
     filepath = os.path.join(output_dir, filename)
 
     headers = {"x-api-key": DEWRANGLE_TOKEN, "content-type": CSV_CONTENT_TYPE}
-    resp = send_request(
-        "get",
-        url,
-        headers=headers,
-        wait_for_content=True,
-        poll_interval=5,
-        max_wait=60
-    )
+    try:
+        resp = send_request(
+            "get",
+            url,
+            headers=headers,
+            wait_for_content=True,
+            poll_interval=5,
+            max_wait=30
+        )
+    except TimeoutError as e:
+        raise TimeoutError(
+            f"🚫 The Dewrangle job global-identifiers report is empty after waiting 30s.\n"
+            f"   Report URL: {url}\n"
+            f"   This usually means the job completed but no identifiers were created or updated.\n"
+            f"   Please verify your manifest contents and check the job in the Dewrangle UI."
+        ) from e
 
     df = pd.read_csv(StringIO(resp.text))
     df.to_csv(filepath, index=False)
@@ -323,13 +337,12 @@ def download_job_report(
     return filepath
 
 
-def download_org_report(
+def fetch_org_report_df(
     organization_id: str,
-    output_dir: Optional[str] = None
-) -> str:
+) -> pd.DataFrame:
     """
-    Download Dewrangle ID report for an organization.
-    Returns path to saved CSV.
+    Download the Dewrangle organization global-identifiers report via REST
+    and return it as a DataFrame (without saving the full report to disk).
     """
     base_url = dewrangle_config["base_url"].rstrip("/")
     endpoint_template = dewrangle_config["endpoints"]["org_rest"]["identifiers_report"]
@@ -338,27 +351,240 @@ def download_org_report(
 
     print(f"🌐 Dewrangle organization global-identifiers report URL: {url}")
 
-    output_dir = output_dir or ROOT_DATA_DIR
-    os.makedirs(output_dir, exist_ok=True)
-
-    timestamp = time.strftime("%Y%m%d-%H%M")
-    filename = f"dewrangle-org-globalids-{timestamp}.csv"
-    filepath = os.path.join(output_dir, filename)
-
     headers = {"x-api-key": DEWRANGLE_TOKEN, "content-type": CSV_CONTENT_TYPE}
-    resp = send_request(
-        "get",
-        url,
-        headers=headers,
-        wait_for_content=True,
-        poll_interval=5,
-        max_wait=60
-    )
+    try:
+        resp = send_request(
+            "get",
+            url,
+            headers=headers,
+            wait_for_content=True,
+            poll_interval=5,
+            max_wait=60
+        )
+    except TimeoutError as e:
+        raise TimeoutError(
+            f"🚫 The Dewrangle organization global-identifiers report is empty after waiting 60s.\n"
+            f"   Report URL: {url}\n"
+            f"   Please verify the organization has identifiers and try again."
+        ) from e
 
     df = pd.read_csv(StringIO(resp.text))
+    return df
+
+
+def _normalize_descriptor_state(event: Optional[str]) -> Optional[str]:
+    """
+    Map Dewrangle GraphQL descriptor event values back to the
+    descriptorState values used in manifests and REST reports.
+    """
+    mapping = {
+        "ACTIVATED": "ACTIVE",
+        "DEACTIVATED": "INACTIVE",
+    }
+    return mapping.get(event, event)
+
+
+def _parse_global_identifier_edges(gi_edges: List[dict]) -> List[dict]:
+    """Flatten a list of GlobalIdentifier edges into descriptor rows."""
+    rows = []
+    for gi_edge in gi_edges:
+        gi_node = gi_edge.get("node", {})
+        gi_global_id = gi_node.get("globalId")
+        fhir_type = gi_node.get("fhirResourceType")
+        study = gi_node.get("study") or {}
+        descriptors_conn = gi_node.get("descriptors", {})
+        desc_edges = descriptors_conn.get("edges", [])
+
+        for desc_edge in desc_edges:
+            desc_node = desc_edge.get("node", {})
+            desc_created_by = desc_node.get("createdByUser") or {}
+            gi_ref = desc_node.get("globalIdentifier") or {}
+            gi_ref_created_by = gi_ref.get("createdByUser") or {}
+
+            rows.append({
+                "globalId": gi_global_id,
+                "studyGlobalId": study.get("globalId"),
+                "studyName": study.get("name"),
+                "fhirResourceType": fhir_type,
+                "descriptor": desc_node.get("descriptor"),
+                "descriptorState": _normalize_descriptor_state(desc_node.get("event")),
+                "globalIdCreatedAt": gi_ref.get("createdAt"),
+                "globalIdCreatedBy": gi_ref_created_by.get("email"),
+                "descriptorCreatedAt": desc_node.get("createdAt"),
+                "descriptorCreatedBy": desc_created_by.get("email"),
+            })
+    return rows
+
+
+async def _fetch_global_identifier_batch_async(
+    session,
+    organization_id: str,
+    batch: List[str],
+) -> List[dict]:
+    """
+    Async helper to query a single batch of globalIds.
+    Returns the raw GlobalIdentifier edges.
+    """
+    variables = {
+        "organization_id": organization_id,
+        "filter": {"globalId": batch},
+    }
+    resp = await session.execute(
+        GET_ORG_GLOBAL_IDENTIFIERS_BY_ID, variable_values=variables
+    )
+    node_data = resp.get("node", {})
+    global_ids_conn = node_data.get("globalIdentifiers", {})
+    return global_ids_conn.get("edges", [])
+
+
+async def _download_filtered_org_global_identifiers_async(
+    organization_id: str,
+    target_ids: List[str],
+    batch_size: int,
+    max_workers: int,
+) -> List[dict]:
+    """
+    Query global identifiers in batches with limited concurrency.
+    Returns flattened descriptor rows.
+    """
+    batches = [
+        target_ids[i * batch_size:(i + 1) * batch_size]
+        for i in range((len(target_ids) + batch_size - 1) // batch_size)
+    ]
+
+    print(
+        f"🔍 Querying {len(target_ids)} globalIds in {len(batches)} batches "
+        f"of up to {batch_size}, with {max_workers} parallel workers..."
+    )
+
+    client = _init_graphql_client()
+    semaphore = asyncio.Semaphore(max_workers)
+    rows = []
+
+    async with client as session:
+        async def fetch_limited(batch):
+            async with semaphore:
+                print(f"🚀 Querying batch of {len(batch)} globalIds...")
+                gi_edges = await _fetch_global_identifier_batch_async(
+                    session, organization_id, batch
+                )
+                print(f"✅ Completed batch of {len(batch)} globalIds.")
+                return gi_edges
+
+        results = await asyncio.gather(*[fetch_limited(batch) for batch in batches])
+        for gi_edges in results:
+            rows.extend(_parse_global_identifier_edges(gi_edges))
+
+    return rows
+
+
+def download_filtered_org_global_identifiers(
+    organization_id: str,
+    global_id: Union[str, List[str]],
+    output_dir: Optional[str] = None,
+    batch_size: int = 30,
+    max_workers: int = 5,
+) -> str:
+    """
+    Query specific global identifiers for an organization using the
+    GlobalIdentifierFilter, and flatten the nested response into a CSV.
+
+    Args:
+        organization_id: Dewrangle organization ID
+        global_id: A single globalId or a list of globalIds to look up
+        output_dir: Optional directory to save the CSV
+        batch_size: Number of globalIds to query per GraphQL request (default 30)
+        max_workers: Number of parallel GraphQL requests (default 5)
+
+    Returns:
+        Path to the saved CSV file
+    """
+    if isinstance(global_id, str):
+        target_ids = [global_id]
+    else:
+        target_ids = list(global_id)
+
+    rows = asyncio.run(
+        _download_filtered_org_global_identifiers_async(
+            organization_id, target_ids, batch_size, max_workers
+        )
+    )
+
+    columns = [
+        "globalId",
+        "studyGlobalId",
+        "studyName",
+        "fhirResourceType",
+        "descriptor",
+        "descriptorState",
+        "globalIdCreatedAt",
+        "globalIdCreatedBy",
+        "descriptorCreatedAt",
+        "descriptorCreatedBy",
+    ]
+    df = pd.DataFrame(rows, columns=columns)
+
+    # Keep only the latest descriptorState per (globalId, descriptor),
+    # matching the behavior of the REST organization report.
+    if not df.empty:
+        df["_descriptorCreatedAt_dt"] = pd.to_datetime(
+            df["descriptorCreatedAt"], errors="coerce"
+        )
+        df = df.sort_values(
+            by=["globalId", "descriptor", "_descriptorCreatedAt_dt"],
+            ascending=[True, True, False],
+            na_position="last",
+        )
+        df = df.drop_duplicates(subset=["globalId", "descriptor"], keep="first")
+        df = df.drop(columns=["_descriptorCreatedAt_dt"])
+        df = df.reset_index(drop=True)
+
+    output_dir = output_dir or ROOT_DATA_DIR
+    os.makedirs(output_dir, exist_ok=True)
+    timestamp = time.strftime("%Y%m%d-%H%M")
+
+    if len(target_ids) == 1:
+        filename = f"dewrangle-global-id-{target_ids[0]}-{timestamp}.csv"
+    else:
+        filename = f"dewrangle-global-ids-{len(target_ids)}-filtered-{timestamp}.csv"
+
+    filepath = os.path.join(output_dir, filename)
     df.to_csv(filepath, index=False)
-    print(f"📥 Organization global IDs report saved at: {filepath}")
+    print(f"📥 Filtered global identifiers report saved at: {filepath}")
     return filepath
+
+
+def wait_for_job(
+    job_id: str,
+    poll_interval: int = 5,
+    max_wait: int = 300,
+) -> None:
+    """
+    Poll a Dewrangle job until it completes or times out.
+
+    Args:
+        job_id: Dewrangle job ID
+        poll_interval: seconds between polls
+        max_wait: maximum total seconds to wait
+    """
+    waited = 0
+    while waited < max_wait:
+        resp = exec_graphql_query(GET_JOB, {"id": job_id})
+        job = resp.get("node", {})
+        completed_at = job.get("completedAt")
+
+        if completed_at:
+            print(f"✅ Job completed at {completed_at}")
+            return
+
+        print(f"⏳ Job not complete. Waiting {poll_interval}s...")
+        time.sleep(poll_interval)
+        waited += poll_interval
+
+    raise TimeoutError(
+        f"Job {job_id} did not complete within {max_wait}s. "
+        "Please check the job status in Dewrangle and try again."
+    )
 
 
 def create_org_global_ids(
@@ -392,12 +618,8 @@ def create_org_global_ids(
     job_id = result["job"]["id"]
     print(f"🚀 Job submitted: {job_id}")
 
-    # Brief wait for job completion
-    job = result["job"]
-    while not job.get("completedAt"):
-        print("Waiting for job to complete...")
-        time.sleep(5)
-        break
+    # Wait for the upsert job to finish before downloading the report
+    wait_for_job(job_id)
     return job_id
 
 
@@ -453,7 +675,8 @@ def update_org_global_ids(
     organization_id: str,
     manifest_path: Path,
     output_dir: Optional[str] = None,
-) -> str:
+    raise_on_empty_report: bool = True,
+) -> Optional[str]:
     """
     Update (upsert) Dewrangle global IDs from a manifest.
 
@@ -467,99 +690,26 @@ def update_org_global_ids(
         manifest_path: Path to the manifest CSV (must contain fhirResourceType,
                        descriptor, descriptorState)
         output_dir: Optional directory to save the report
+        raise_on_empty_report: If False, return None when the job report is empty
+                               instead of raising TimeoutError.
 
     Returns:
-        Path to the downloaded report CSV
+        Path to the downloaded report CSV, or None if the report was empty and
+        raise_on_empty_report is False.
     """
     file_id = upload_org_file(organization_id, manifest_path)
     job_id = create_org_global_ids(organization_id, file_id)
-    report_path = download_job_report(job_id, organization_id, output_dir=output_dir)
+    try:
+        report_path = download_job_report(job_id, organization_id, output_dir=output_dir)
+    except TimeoutError as e:
+        if raise_on_empty_report:
+            raise
+        print(
+            "⚠️ Dewrangle job report is empty; skipping job report download. "
+            "Will fall back to downloading the organization global identifiers report."
+        )
+        return None
     return report_path
-
-
-def download_org_global_identifiers(
-    organization_id: str,
-    global_id: Optional[Union[str, List[str]]] = None,
-    output_dir: Optional[str] = None
-) -> str:
-    """
-    Query global identifiers for an organization and flatten the nested
-    response into a CSV with columns: globalId, fhirResourceType, descriptor, event.
-
-    Args:
-        organization_id: Dewrangle organization ID
-        global_id: If provided, filter results to matching globalId(s).
-                     Accepts a single string, a list of strings, or None for all.
-        output_dir: Optional directory to save the CSV
-
-    Returns:
-        Path to the saved CSV file
-    """
-    # Normalize global_id to a set for efficient lookup
-    if global_id is None:
-        target_ids = None
-    elif isinstance(global_id, str):
-        target_ids = {global_id}
-    else:
-        target_ids = set(global_id)
-
-    variables = {"organization_id": organization_id}
-    resp = exec_graphql_query(GET_ORG_GLOBAL_IDENTIFIERS, variables)
-
-    node_data = resp.get("node", {})
-    global_ids_conn = node_data.get("globalIdentifiers", {})
-    gi_edges = global_ids_conn.get("edges", [])
-
-    rows = []
-    for gi_edge in gi_edges:
-        gi_node = gi_edge.get("node", {})
-        gi_global_id = gi_node.get("globalId")
-
-        # Filter by globalId(s) if requested
-        if target_ids is not None and gi_global_id not in target_ids:
-            continue
-
-        fhir_type = gi_node.get("fhirResourceType")
-        study = gi_node.get("study") or {}
-        descriptors_conn = gi_node.get("descriptors", {})
-        desc_edges = descriptors_conn.get("edges", [])
-
-        for desc_edge in desc_edges:
-            desc_node = desc_edge.get("node", {})
-            desc_created_by = desc_node.get("createdByUser") or {}
-            gi_ref = desc_node.get("globalIdentifier") or {}
-            gi_ref_created_by = gi_ref.get("createdByUser") or {}
-
-            rows.append({
-                "globalId": gi_global_id,
-                "studyGlobalId": study.get("globalId"),
-                "studyName": study.get("name"),
-                "fhirResourceType": fhir_type,
-                "descriptor": desc_node.get("descriptor"),
-                "descriptorState": desc_node.get("event"),
-                "globalIdCreatedAt": gi_ref.get("createdAt"),
-                "globalIdCreatedBy": gi_ref_created_by.get("email"),
-                "descriptorCreatedAt": desc_node.get("createdAt"),
-                "descriptorCreatedBy": desc_created_by.get("email"),
-            })
-
-    df = pd.DataFrame(rows)
-
-    output_dir = output_dir or ROOT_DATA_DIR
-    os.makedirs(output_dir, exist_ok=True)
-    timestamp = time.strftime("%Y%m%d-%H%M")
-
-    if target_ids is not None and len(target_ids) == 1:
-        filename = f"dewrangle-global-id-{next(iter(target_ids))}-{timestamp}.csv"
-    elif target_ids is not None:
-        filename = f"dewrangle-global-ids-{len(target_ids)}-filtered-{timestamp}.csv"
-    else:
-        filename = f"dewrangle-org-global-identifiers-{timestamp}.csv"
-
-    filepath = os.path.join(output_dir, filename)
-    df.to_csv(filepath, index=False)
-    
-    return filepath
 
 
 def download_created_study_report(
@@ -594,7 +744,7 @@ def download_created_study_report(
         headers=headers,
         wait_for_content=True,
         poll_interval=5,
-        max_wait=60
+        max_wait=180
     )
 
     all_df = pd.read_csv(StringIO(resp.text))
@@ -610,39 +760,55 @@ def download_created_study_report(
 def find_study_by_name(
     organization_id: str,
     study_name: str,
+    page_size: int = 100,
+    max_pages: int = 100,
 ) -> Optional[dict]:
     """
     Check if a study with the given name already exists in Dewrangle.
+    Paginates through studies until the study is found or all pages are exhausted.
 
     Args:
         organization_id: Org ID
         study_name: Name of the study to look up
+        page_size: Number of studies per GraphQL page
+        max_pages: Maximum pages to fetch before giving up
 
     Returns:
         Study dict with keys: id, name, globalId if found, else None.
     """
-    variables = {
-        "organization_id": organization_id,
-    }
+    after = None
+    for page in range(1, max_pages + 1):
+        variables = {
+            "organization_id": organization_id,
+            "first": page_size,
+        }
+        if after:
+            variables["after"] = after
 
-    try:
-        resp = exec_graphql_query(GET_ORGANIZATION_STUDIES, variables)
-    except Exception as e:
-        logger.warning(f"⚠️ Failed to query Dewrangle for existing studies: {e}")
-        return None
+        try:
+            resp = exec_graphql_query(GET_ORGANIZATION_STUDIES, variables)
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to query Dewrangle for existing studies: {e}")
+            return None
 
-    node_data = resp.get("node")
-    if not node_data:
-        return None
+        node_data = resp.get("node")
+        if not node_data:
+            return None
 
-    studies_conn = node_data.get("studies", {})
-    edges = studies_conn.get("edges", [])
+        studies_conn = node_data.get("studies", {})
+        edges = studies_conn.get("edges", [])
+        page_info = studies_conn.get("pageInfo", {})
 
-    for edge in edges:
-        study = edge.get("node")
-        if study and study.get("name") == study_name:
-            print(f"🔍 Found existing study '{study_name}' in Dewrangle (globalId: {study['globalId']})")
-            return study
+        for edge in edges:
+            study = edge.get("node")
+            if study and study.get("name") == study_name:
+                print(f"🔍 Found existing study '{study_name}' in Dewrangle (globalId: {study['globalId']}) on page {page}")
+                return study
+
+        if not page_info.get("hasNextPage"):
+            break
+
+        after = page_info.get("endCursor")
 
     return None
 

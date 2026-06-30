@@ -7,9 +7,15 @@ Requires:
 
 Output CSV columns:
 - globalId
+- studyGlobalId
+- studyName
 - fhirResourceType
 - descriptor
-- event
+- descriptorState
+- globalIdCreatedAt
+- globalIdCreatedBy
+- descriptorCreatedAt
+- descriptorCreatedBy
 """
 
 import sys
@@ -19,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
 
-from src.dewrangle_client import download_org_global_identifiers
+from src.dewrangle_client import download_filtered_org_global_identifiers
 
 
 def parse_args():
@@ -69,7 +75,7 @@ def main():
     print(args.org_message)
     print(f"🔍 Looking up globalId: {args.id}")
 
-    filepath = download_org_global_identifiers(
+    filepath = download_filtered_org_global_identifiers(
         organization_id=args.organization_id,
         global_id=args.id,
         output_dir=args.output_dir,
