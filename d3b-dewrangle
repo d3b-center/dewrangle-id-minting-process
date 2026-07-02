@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# d3b-dewrangle CLI wrapper
+# Usage: ./d3b-dewrangle <subcommand> [options]
+
+set -e
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+python "${SCRIPT_DIR}/d3b-dewrangle-cli/scripts/d3b_dewrangle.py" "$@"

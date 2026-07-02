@@ -1,0 +1,2 @@
+study_id,file_name,dt_id,fhirResourceType,descriptor,descriptorState
+SD_SJ6R8JCG,source_test_001.txt,OPS-001,DocumentReference,s3://test-bucket/source_test_001.txt,ACTIVE

@@ -1,0 +1,2 @@
+globalId,studyGlobalId,studyName,fhirResourceType,descriptor,descriptorState
+dr-hnze4ead3x,,,DocumentReference,s3://test2_bucket/OPS-002/test_cram.crai,INACTIVE

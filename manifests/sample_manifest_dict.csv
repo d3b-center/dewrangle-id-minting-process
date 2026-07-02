@@ -1,0 +1,27 @@
+Fields,Required,Acceptable_type,Acceptable_values,Description,Example
+case_id,required,String,,Unique identifier for the patient/case,C12345
+sample_id,required,String,,A unique identifier for a specific biological sample collected from a patient.,7316-11566
+aliquot_id,required,String,,Unique identifier for the aliquot (portion of sample),1549608
+is_proband,required,Boolean,,Indicates whether the patient is the proband in the family,Yes
+family_id,required(if if family relationships exist),String,,Identifier for the family,FAM001
+family_relationship,required(if if family relationships exist),String,,"Relationship of the current case (case_id) to the target case (family_relationship_target_case_id). For example, “Mother” means the current case is the mother of the target case.
+For proband (is_proband = Yes): this field should be NULL or empty.",Mother
+relative_case_id,required(if if family relationships exist),String,,"The case_id of the related individual to whom the relationship is defined. 
+For proband (is_proband = Yes): this field should be NULL or empty.",C12346
+affected_status,required,Enum,Affected;Unaffected;Not Reported,Clinical status of the patient,Affected
+diagnosis,required,String,,"Clinical diagnosis of the patient, or ""Not Reported""",Acute Lymphoblastic Leukemia
+analyte_type,required,Enum,DNA;RNA;Protein;cfDNA;Total RNA;EBV Immortalized Normal;FFPE DNA;FFPE RNA;GenomePlex (Rubicon) Amplified DNA;m6A Enriched RNA;Nuclei RNA;Repli-G (Qiagen) DNA;Repli-G Pooled (Qiagen) DNA;Repli-G X (Qiagen) DNA,Type of analyte extracted,DNA
+composition,required,Enum,Peripheral Whole Blood;Solid Tissue;Plasma;Derived Cell Line;Bone;Bone Marrow;Buccal Cells;Epstein-Barr Virus Immortalized Cells;Fibroblasts;Lymphoblastoid Cell Lines;Lymphocytes;Mononuclear Cells;Saliva;Xenograft Tissue;Not Reported,The cellular composition of the biospecimen.,Solid Tissue
+tissue_type,required,Enum,Tumor;Normal;Abnormal;Peritumoral;Unknown;Not Reported,Text term that represents a description of the kind of tissue collected with respect to disease status.,Normal
+gender,required,Enum,Female;Male;Other;Not Reported,Biological gender of the patient,Male
+race,required,Enum,American Indian or Alaska Native;Asian;Black or African American;Hispanic or Latino;Middle Eastern or North African;Native Hawaiian or Other Pacific Islander;Not allowed to collect;Not Reported;Unknown;White,Race of the patient,White
+ethnicity,required,String,,Ethnicity of the patient,Hispanic or Latino
+sample_type,optional,String,,,Saliva
+collection_date_time,optional,Int,,,2078
+age_at_event_days,optional,Int,,Age at the time of event occurred in number of days since birth.,3650
+tumor_descriptor,optional,String,,Additional descriptors for tumor samples,Initial CNS Tumor
+method_of_sample_procurement,optional,String,,How the sample was collected,Blood Draw
+spatial_location,optional,String,,Body site from which sample was collected,Brain
+anatomic_location,optional,String,,Location within tissue or tumor,Left Hemisphere
+specimen_status,optional,,,,
+species,optional,String,,Species of origin,Homo sapiens

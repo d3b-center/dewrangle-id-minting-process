@@ -1,0 +1,1 @@
+case_id,sample_id,aliquot_id,is_proband,family_id,family_relationship,relative_case_id,affected_status,diagnosis,analyte_type,composition,tissue_type,gender,race,ethnicity,sample_type,collection_date_time,age_at_event_days,tumor_descriptor,method_of_sample_procurement,spatial_location,anatomic_location,specimen_status,species
