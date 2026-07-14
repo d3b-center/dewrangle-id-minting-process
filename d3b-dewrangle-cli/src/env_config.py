@@ -5,7 +5,7 @@ config = {
         "dev_token": os.environ.get("DEWRANGLE_TOKEN"),
         "base_url": os.environ.get("DEWRANGLE_BASE_URL"),
         "pagination": {"max_page_size": 10},
-        "client": {"execution_timeout": os.environ.get("DEWRANGLE_CLIENT_EXECUTION_TIMEOUT", 30)},  # seconds
+        "client": {"execution_timeout": int(os.environ.get("DEWRANGLE_CLIENT_EXECUTION_TIMEOUT", 30))},  # seconds
         "endpoints": {
             "graphql": "/api/graphql",
             "job_rest": {
