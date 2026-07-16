@@ -181,6 +181,9 @@ def main():
             else:
                 logger.exception("❌ Dewrangle IDs table does not exist. Use --create-dewrangle-ids-table to create it, or ensure the table exists before running this script.", exc_info=True)
                 sys.exit(1)
+        except pd.io.sql.DatabaseError as e:
+            logger.exception("❌ Database error occurred while checking for existing descriptors", exc_info=True)
+            sys.exit(1)
         except Exception as e:
             logger.exception("❌ Error checking for existing descriptors: %s", e)
             sys.exit(1)
