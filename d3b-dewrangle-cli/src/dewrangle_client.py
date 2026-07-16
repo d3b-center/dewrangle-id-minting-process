@@ -28,7 +28,7 @@ CSV_CONTENT_TYPE = "text/csv"
 
 dewrangle_config = config["dewrangle"]
 DEWRANGLE_TOKEN = dewrangle_config["dev_token"]
-EXECUTION_TIMEOUT = dewrangle_config["client"]["execution_timeout"]
+EXECUTION_TIMEOUT = int(dewrangle_config["client"]["execution_timeout"])
 
 # Validate required config is present
 _missing = []

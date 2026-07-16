@@ -80,6 +80,10 @@ def cmd_global_id_mint(args):
     script_args = [*build_common_args(args), "--manifest", args.manifest]
     if args.save_dt_record:
         script_args.append("--save-dt-record")
+    if args.create_dewrangle_ids_table:
+        script_args.append("--create-dewrangle-ids-table")
+    if args.verbose:
+        script_args.append("--verbose")
     run_script("org_globalids_mint.py", script_args)
 
 
@@ -175,6 +179,23 @@ def main():
         "--save-dt-record",
         action="store_true",
         help="Save data transfer mapping record to the DWH (source files only)",
+    )
+    p_mint.add_argument(
+        "--create-dewrangle-ids-table",
+        action="store_true",
+        help="""
+            If set, create the Dewrangle IDs table in the DWH. Note that this
+            should only be done once, and the table should already exist for
+            subsequent runs. This flag should be used with caution; creating the
+            new empty table may result in accidentally duplicating descriptors
+            if the table is created after some descriptors have already had
+            global IDs minted.
+            """
+    )
+    p_mint.add_argument(
+        "--verbose",
+        action="store_true",
+        help="If set, print verbose logs."
     )
 
     # --- global-id-check ---

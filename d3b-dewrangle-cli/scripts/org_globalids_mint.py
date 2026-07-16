@@ -34,6 +34,17 @@ from src.db_utils import (
     save_dewrangle_ids,
     save_data_transfer_mapping,
 )
+from psycopg2.errors import UndefinedTable
+import logging
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+
+logger = logging.getLogger(__name__)
 
 
 # ======================================
@@ -74,6 +85,23 @@ def parse_args():
         default=None,
         help="Optional output directory for downloaded CSV"
     )
+    parser.add_argument(
+        "--create-dewrangle-ids-table",
+        action="store_true",
+        help="""
+            If set, create the Dewrangle IDs table in DWH. Note that this
+            should only be done once, and the table should already exist for
+            subsequent runs. This flag should be used with caution; creating the
+            new empty table may result in accidentally duplicating descriptors
+            if the table is created after some descriptors have already had
+            global IDs minted.
+            """
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="If set, print verbose logs."
+    )
 
     args = parser.parse_args()
 
@@ -98,7 +126,10 @@ def parse_args():
 # ======================================
 def main():
     args = parse_args()
-    print(args.org_message)
+
+    logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
+
+    logger.info(args.org_message)
 
     env_type = args.env.lower()
     database_type = args.db.lower()
@@ -119,7 +150,7 @@ def main():
         if missing:
             raise ValueError(f"Manifest missing columns for saving DT records: {missing}")
 
-    print(f"✅ Manifest read successfully with {manifest_df.shape[0]} rows.")
+    logger.info("✅ Manifest read successfully with %d rows.", manifest_df.shape[0])
 
     # --- Step 2: Connect to DB ---
     conn = connect_to_database(
@@ -131,19 +162,35 @@ def main():
     )
 
     try:
+        dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
         # --- Step 3: Check if descriptors already exist ---
-        existing_rows = check_db_records_exist(
-            conn,
-            schema_name=db_config[env_type]["dewrangle_ids"]["schema"],
-            table_name=db_config[env_type]["dewrangle_ids"]["table"],
-            df=manifest_df,
-            output_dir=args.output_dir,
-        )
-
-        if not existing_rows.empty:
-            print("❌ Aborting to avoid duplicates. Please remove the duplicate descriptors and try again.")
+        try:
+            logger.debug("Checking for existing descriptors in %s.%s..." % (dewrangle_ids_config["schema"], dewrangle_ids_config["table"]))
+            existing_rows = check_db_records_exist(
+                conn,
+                schema_name=dewrangle_ids_config["schema"],
+                table_name=dewrangle_ids_config["table"],
+                df=manifest_df,
+                output_dir=args.output_dir,
+            )
+        except (UndefinedTable, pd.io.sql.DatabaseError) as e:
+            if "relation" in str(e) and "does not exist" in str(e):
+                if args.create_dewrangle_ids_table:
+                    logger.warning("⚠️ Dewrangle IDs table does not exist.")
+                    conn.rollback()  # Rollback the transaction to clear the error state
+                    existing_rows = pd.DataFrame()  # No existing rows since table does not exist
+                else:
+                    logger.exception("❌ Dewrangle IDs table does not exist. Use --create-dewrangle-ids-table to create it, or ensure the table exists before running this script.", exc_info=True)
+                    sys.exit(1)
+            else:
+                logger.exception("❌ An unexpected DatabaseError occurred", exc_info=True)
+        except Exception as e:
+            logger.exception("❌ Error checking for existing descriptors: %s", e)
             sys.exit(1)
 
+        if not existing_rows.empty:
+            logger.error("❌ Aborting to avoid duplicates. Please remove the duplicate descriptors and try again.")
+            sys.exit(1)
         # --- Step 4: Upload file manifest ---
         file_id = upload_org_file(args.organization_id, manifest_path)
 
@@ -161,20 +208,21 @@ def main():
         )
 
         # --- Step 7: Save dewrangle IDs to warehouse ---
-        print("🗂️ Saving dewrangle IDs report to DB...")
-        dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
+        logger.info("🗂️ Saving dewrangle IDs report to DB...")
         save_dewrangle_ids(conn, filepath, dewrangle_ids_config)
 
         # --- Step 8: Optionally save Data Transfer mapping ---
         if args.save_dt_record:
-            print("🗂️ Saving Data Transfer Records to DB...")
+            logger.info("🗂️ Saving Data Transfer Records to DB...")
             data_transfer_mapping_config = db_config[env_type]["data_transfer_file_mapping"]
             save_data_transfer_mapping(conn, filepath, manifest_df, data_transfer_mapping_config)
-
+    except Exception as e:
+        logger.exception("❌ Error occurred: %s", e)
+        sys.exit(1)
     finally:
         conn.close()
 
-    print("🎉 All completed!")
+    logger.info("🎉 All completed!")
 
 
 if __name__ == "__main__":
