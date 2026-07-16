@@ -173,17 +173,17 @@ def main():
                 df=manifest_df,
                 output_dir=args.output_dir,
             )
-        except UndefinedTable as e:
-            if args.create_dewrangle_ids_table:
-                logger.warning("⚠️ Dewrangle IDs table does not exist.")
-                conn.rollback()  # Rollback the transaction to clear the error state
-                existing_rows = pd.DataFrame()  # No existing rows since table does not exist
+        except (UndefinedTable, pd.io.sql.DatabaseError) as e:
+            if "relation" in str(e) and "does not exist" in str(e):
+                if args.create_dewrangle_ids_table:
+                    logger.warning("⚠️ Dewrangle IDs table does not exist.")
+                    conn.rollback()  # Rollback the transaction to clear the error state
+                    existing_rows = pd.DataFrame()  # No existing rows since table does not exist
+                else:
+                    logger.exception("❌ Dewrangle IDs table does not exist. Use --create-dewrangle-ids-table to create it, or ensure the table exists before running this script.", exc_info=True)
+                    sys.exit(1)
             else:
-                logger.exception("❌ Dewrangle IDs table does not exist. Use --create-dewrangle-ids-table to create it, or ensure the table exists before running this script.", exc_info=True)
-                sys.exit(1)
-        except pd.io.sql.DatabaseError as e:
-            logger.exception("❌ Database error occurred while checking for existing descriptors", exc_info=True)
-            sys.exit(1)
+                logger.exception("❌ An unexpected DatabaseError occurred", exc_info=True)
         except Exception as e:
             logger.exception("❌ Error checking for existing descriptors: %s", e)
             sys.exit(1)
