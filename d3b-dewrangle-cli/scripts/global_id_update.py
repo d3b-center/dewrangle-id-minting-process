@@ -32,7 +32,7 @@ import pandas as pd
 
 from src.dewrangle_client import (
     update_org_global_ids,
-    fetch_org_report_df,
+    fetch_globalid_report_df,
 )
 from src.db_utils import (
     get_db_config,
@@ -51,7 +51,7 @@ def parse_args():
         "--env",
         choices=["prod", "qa"],
         required=True,
-        help="Environment (prod or qa). Determines default organization_id if not set explicitly."
+        help="Environment (prod or qa). Determines default organization_id if not set explicitly.",
     )
     parser.add_argument(
         "--db",
@@ -62,17 +62,17 @@ def parse_args():
     parser.add_argument(
         "--organization_id",
         default=None,
-        help="Dewrangle Organization ID. Overrides --env default if provided."
+        help="Dewrangle Organization ID. Overrides --env default if provided.",
     )
     parser.add_argument(
         "--manifest",
         required=True,
-        help="Path to the global ID update manifest CSV."
+        help="Path to the global ID update manifest CSV.",
     )
     parser.add_argument(
         "--output_dir",
         default=None,
-        help="Optional output directory for downloaded CSV"
+        help="Optional output directory for downloaded CSV",
     )
 
     args = parser.parse_args()
@@ -80,13 +80,19 @@ def parse_args():
     if args.organization_id:
         org_message = f"🛠️ Using custom organization_id: {args.organization_id}"
     elif args.env == "prod":
-        args.organization_id = "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ="
+        args.organization_id = (
+            "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ="
+        )
         org_message = "🚀 Using Kids First prod Dewrangle organization"
     elif args.env == "qa":
-        args.organization_id = "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
+        args.organization_id = (
+            "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
+        )
         org_message = "🧪 Using test-dewrangle-ids organization"
     else:
-        parser.error("Either --organization_id must be set or --env must be 'prod' or 'qa'.")
+        parser.error(
+            "Either --organization_id must be set or --env must be 'prod' or 'qa'."
+        )
 
     args.org_message = org_message
     return args
@@ -94,7 +100,7 @@ def parse_args():
 
 def main():
     args = parse_args()
-    
+
     env_type = args.env.lower()
     database_type = args.db.lower()
     db_config = get_db_config(database_type)
@@ -103,15 +109,26 @@ def main():
 
     # Read and validate manifest
     manifest_df = pd.read_csv(manifest_path)
-    required_columns = ["globalId", "fhirResourceType", "descriptor", "descriptorState"]
-    missing_columns = [col for col in required_columns if col not in manifest_df.columns]
+    required_columns = [
+        "globalId",
+        "fhirResourceType",
+        "descriptor",
+        "descriptorState",
+    ]
+    missing_columns = [
+        col for col in required_columns if col not in manifest_df.columns
+    ]
     if missing_columns:
-        raise ValueError(f"Manifest is missing required columns: {missing_columns}")
+        raise ValueError(
+            f"Manifest is missing required columns: {missing_columns}"
+        )
 
     print(f"✅ Manifest read successfully with {manifest_df.shape[0]} rows.")
 
     # Extract list of globalIds to sync later
-    target_global_ids = list(manifest_df["globalId"].dropna().astype(str).unique())
+    target_global_ids = list(
+        manifest_df["globalId"].dropna().astype(str).unique()
+    )
 
     # Connect to DB
     conn = connect_to_database(
@@ -135,7 +152,7 @@ def main():
         # Step 2: Fetch full org report as a DataFrame, filter for target
         # globalIds, and save only the filtered DataFrame locally.
         print("📥 Fetching full organization global identifiers report...")
-        full_df = fetch_org_report_df(organization_id=args.organization_id)
+        full_df = fetch_globalid_report_df(organization_id=args.organization_id)
         print(f"📊 Full organization report has {len(full_df)} rows.")
 
         filtered_df = full_df[full_df["globalId"].isin(target_global_ids)]
@@ -147,13 +164,19 @@ def main():
         filtered_filename = f"dewrangle-global-ids-{len(target_global_ids)}-filtered-{timestamp}.csv"
         filtered_report_path = Path(output_dir) / filtered_filename
         filtered_df.to_csv(filtered_report_path, index=False)
-        print(f"📥 Filtered global identifiers report saved at: {filtered_report_path}")
+        print(
+            f"📥 Filtered global identifiers report saved at: {filtered_report_path}"
+        )
 
         if filtered_df.empty:
-            print("⚠️ No matching records found in the downloaded report. Nothing to update in DB.")
+            print(
+                "⚠️ No matching records found in the downloaded report. Nothing to update in DB."
+            )
             return
 
-        print(f"🎯 Filtered {len(filtered_df)} records matching the manifest globalIds.")
+        print(
+            f"🎯 Filtered {len(filtered_df)} records matching the manifest globalIds."
+        )
 
         # Step 3: Replace records in DB
         dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
@@ -162,7 +185,9 @@ def main():
         primary_key_cols = dewrangle_ids_config["primary_key_cols"]
 
         # 4a. Delete existing records for the target globalIds
-        delete_db_records_by_global_ids(conn, schema_name, table_name, target_global_ids)
+        delete_db_records_by_global_ids(
+            conn, schema_name, table_name, target_global_ids
+        )
 
         # 4b. Align DataFrame columns to the existing table schema
         table_cols = get_table_columns(conn, schema_name, table_name)

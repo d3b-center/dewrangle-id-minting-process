@@ -43,7 +43,7 @@ def parse_args():
     parser.add_argument(
         "--env",
         choices=["prod", "qa"],
-        help="Environment to use (prod or qa). Determines default schema and organization_id if not set explicitly."
+        help="Environment to use (prod or qa). Determines default schema and organization_id if not set explicitly.",
     )
     parser.add_argument(
         "--db",
@@ -54,17 +54,17 @@ def parse_args():
     parser.add_argument(
         "--organization_id",
         default=None,
-        help="Dewrangle Organization ID. Overrides --env default if provided."
+        help="Dewrangle Organization ID. Overrides --env default if provided.",
     )
     parser.add_argument(
         "--study-name",
         required=True,
-        help="Name of the study to create in Dewrangle."
+        help="Name of the study to create in Dewrangle.",
     )
     parser.add_argument(
         "--output_dir",
         default=None,
-        help="Optional output directory for downloaded CSV"
+        help="Optional output directory for downloaded CSV",
     )
 
     args = parser.parse_args()
@@ -73,13 +73,19 @@ def parse_args():
     if args.organization_id:
         org_message = f"🛠️ Using custom organization_id: {args.organization_id}"
     elif args.env == "prod":
-        args.organization_id = "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ="
+        args.organization_id = (
+            "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ="
+        )
         org_message = "🚀 Using Kids First prod Dewrangle organization"
     elif args.env == "qa":
-        args.organization_id = "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
+        args.organization_id = (
+            "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
+        )
         org_message = "🧪 Using test-dewrangle-ids organization"
     else:
-        parser.error("Either --organization_id must be set or --env must be 'prod' or 'qa'.")
+        parser.error(
+            "Either --organization_id must be set or --env must be 'prod' or 'qa'."
+        )
 
     args.org_message = org_message
     return args
@@ -115,22 +121,34 @@ def main():
 
         if study_result:
             # Step 2: Check if study already exists in DB
-            if check_study_exists(conn, schema_name, table_name, args.study_name):
-                print(f"✅ Study '{args.study_name}' also exists in the database.")
+            if check_study_exists(
+                conn, schema_name, table_name, args.study_name
+            ):
+                print(
+                    f"✅ Study '{args.study_name}' also exists in the database."
+                )
                 return
 
-            print(f"📥 Study '{args.study_name}' found in Dewrangle but not in DB. Downloading report...")
+            print(
+                f"📥 Study '{args.study_name}' found in Dewrangle but not in DB. Downloading report..."
+            )
         else:
             # Step 3: Create study in Dewrangle
-            print(f"🔨 Study '{args.study_name}' not found in Dewrangle. Creating...")
-            study_result = create_kf_study(args.organization_id, args.study_name)
+            print(
+                f"🔨 Study '{args.study_name}' not found in Dewrangle. Creating..."
+            )
+            study_result = create_kf_study(
+                args.organization_id, args.study_name
+            )
 
         # # Step 4: Download and augment report
-        study_report = download_created_study_report(study_result, output_dir=args.output_dir)
+        study_report = download_created_study_report(
+            study_result, output_dir=args.output_dir
+        )
 
         # Step 5: Save to database
         print("🗂️ Saving study report to DB...")
-        save_dewrangle_ids(conn, study_report, dewrangle_ids_config)
+        save_dewrangle_ids(conn, dewrangle_ids_config, study_report)
 
         print("🎉 Done!")
 
