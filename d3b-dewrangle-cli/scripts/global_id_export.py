@@ -12,17 +12,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import argparse
-import pandas as pd
 import logging
+import os
+import time
 
 from src.db_utils import (
     get_db_config,
     connect_to_database,
-    check_db_records_exist,
     save_dewrangle_ids,
-    save_data_transfer_mapping,
 )
-from src.dewrangle_client import fetch_org_report_df
+from src.dewrangle_client import fetch_globalid_report_df
 
 logging.basicConfig(
     level=logging.INFO,
@@ -47,7 +46,7 @@ def parse_args():
     )
     parser.add_argument(
         "--db",
-        required=True,
+        required=False,
         choices=["d3b", "dcc"],
         help="Database warehouse type (d3b or dcc).",
     )
@@ -66,6 +65,11 @@ def parse_args():
         "--output-dir",
         default=None,
         help="Optional output directory for the downloaded CSV",
+    )
+    parser.add_argument(
+        "--download_csv_only",
+        action="store_true",
+        help="If set, only download the CSV and skip saving to the database.",
     )
     parser.add_argument(
         "--verbose", action="store_true", help="If set, print verbose logs."
@@ -90,6 +94,11 @@ def parse_args():
             "Either --organization_id must be set or --env must be 'prod' or 'qa'."
         )
 
+    if args.download_csv_only and not args.output_dir:
+        parser.error(
+            "If --download_csv_only is set, --output-dir must be provided."
+        )
+
     args.org_message = org_message
     return args
 
@@ -112,13 +121,44 @@ def main():
     )
 
     # -- Step 2: Save global IDs to database ---
-    conn = connect_to_database(
-        db_host=db_config["db_host"],
-        db_name=db_config["db_name"],
-        db_user=db_config["db_user"],
-        db_port=db_config["db_port"],
-        db_password=db_config["db_password"],
-    )
-    dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
+    if not args.download_csv_only:
+        try:
+            conn = connect_to_database(
+                db_host=db_config["db_host"],
+                db_name=db_config["db_name"],
+                db_user=db_config["db_user"],
+                db_port=db_config["db_port"],
+                db_password=db_config["db_password"],
+            )
+            dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
 
-    save_dewrangle_ids(conn, dewrangle_ids_config, df=global_id_df)
+            save_dewrangle_ids(conn, dewrangle_ids_config, df=global_id_df)
+        except Exception as e:
+            logger.error(f"❌ Error saving global IDs to database: {e}")
+            sys.exit(1)
+        finally:
+            conn.close()
+
+    # -- Step 3: Optionally, save global IDs to CSV ---
+    if args.output_dir:
+        output_dir = Path(args.output_dir).resolve()
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = time.strftime("%Y%m%d-%H%M")
+        if args.study_id:
+            output_file_path = (
+                output_dir
+                / f"dewrangle_global_ids_{args.organization_id}_{args.study_id}_{timestamp}.csv"
+            )
+        else:
+            output_file_path = (
+                output_dir
+                / f"dewrangle_global_ids_{args.organization_id}_{timestamp}.csv"
+            )
+        global_id_df.to_csv(output_file_path, index=False)
+        logger.info(f"✅ Global IDs exported to CSV: {output_file_path}")
+
+    logger.info("✅ Global ID export completed successfully.")
+
+
+if __name__ == "__main__":
+    main()
