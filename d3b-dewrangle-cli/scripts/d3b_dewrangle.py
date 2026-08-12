@@ -312,7 +312,7 @@ def main():
     )
     p_export.add_argument(
         "--null-string",
-        default="null",
+        default="not in dewrangle",
         help="The string to use for null descriptors when --null-handling is set to 'coerce_to_string'.",
     )
     p_export.add_argument(

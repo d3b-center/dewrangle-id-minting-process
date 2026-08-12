@@ -76,14 +76,14 @@ def parse_args():
         ],
         default="coerce_to_string",
         help="How to handle null values when saving to the database. "
-        "'error' will raise an error, 'skip' will skip rows with null descriptors, "
+        "'error' will raise an error, 'skip' will skip rows with null values, "
         "'leave_as_null' will leave null values as null,"
         "and 'coerce_to_string' will convert nulls to the string 'null'.",
     )
     parser.add_argument(
         "--null_string",
         default="not in dewrangle",
-        help="The string to use for null descriptors when --null_handling is set to 'coerce_to_string'.",
+        help="The string to use for null values when --null_handling is set to 'coerce_to_string'.",
     )
     parser.add_argument(
         "--skip_non_study_global_ids",
@@ -201,7 +201,7 @@ def main():
             )
             global_id_df = global_id_df.fillna(args.null_string)
 
-    # -- Step 3: Save global IDs to database ---
+    # -- Step 4: Save global IDs to database ---
     if not args.download_csv_only:
         try:
             conn = connect_to_database(
