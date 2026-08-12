@@ -220,7 +220,7 @@ def main():
         finally:
             conn.close()
 
-    # -- Step 3: Optionally, save global IDs to CSV ---
+    # -- Step 5: Optionally, save global IDs to CSV ---
     if args.output_dir:
         output_dir = Path(args.output_dir).resolve()
         os.makedirs(output_dir, exist_ok=True)
