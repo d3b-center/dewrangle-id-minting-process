@@ -147,6 +147,12 @@ def cmd_global_id_export(args):
         script_args.append("--verbose")
     if args.download_csv_only:
         script_args.append("--download_csv_only")
+    if args.null_handling:
+        script_args.extend(["--null_handling", args.null_handling])
+    if args.null_string:
+        script_args.extend(["--null_string", args.null_string])
+    if args.skip_non_study_global_ids:
+        script_args.append("--skip_non_study_global_ids")
     run_script("global_id_export.py", script_args)
 
 
@@ -289,6 +295,30 @@ def main():
         "--download_csv_only",
         action="store_true",
         help="If set, only download the CSV and skip saving to the database.",
+    )
+    p_export.add_argument(
+        "--null-handling",
+        choices=[
+            "error",
+            "skip",
+            "coerce_to_string",
+            "leave_as_null",
+        ],
+        default="coerce_to_string",
+        help="How to handle null values when saving to the database. "
+        "'error' will raise an error, 'skip' will skip rows with null descriptors, "
+        "'leave_as_null' will leave null values as null,"
+        "and 'coerce_to_string' will convert nulls to the string 'null'.",
+    )
+    p_export.add_argument(
+        "--null-string",
+        default="null",
+        help="The string to use for null descriptors when --null-handling is set to 'coerce_to_string'.",
+    )
+    p_export.add_argument(
+        "--skip-non-study-global-ids",
+        action="store_true",
+        help="If set, skip rows where the Global ID does not belong to a study",
     )
 
     # --- study-create ---
