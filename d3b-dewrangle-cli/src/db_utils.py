@@ -32,7 +32,7 @@ def get_db_config(database_type: str):
 # ======================================
 # Connection
 # ======================================
-def connect_to_database(db_host, db_name, db_user, db_port,db_password):
+def connect_to_database(db_host, db_name, db_user, db_port, db_password):
     db_config = {
         "host": db_host,
         "dbname": db_name,
@@ -59,7 +59,7 @@ def connect_to_database(db_host, db_name, db_user, db_port,db_password):
             user=db_user,
             password=db_password,
             host=db_host,
-            port=db_port
+            port=db_port,
         )
         print(f"✅ Successfully connected to database!")
         return conn
@@ -70,6 +70,7 @@ def connect_to_database(db_host, db_name, db_user, db_port,db_password):
             f"{str(e)}\nConfig: {pformat(display)}"
         )
 
+
 # ======================================
 # Existence Checks
 # ======================================
@@ -78,7 +79,7 @@ def check_db_records_exist(
     schema_name: str,
     table_name: str,
     df: pd.DataFrame,
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Check if records exist in the database by descriptor and return matching rows.
@@ -103,7 +104,9 @@ def check_db_records_exist(
         FROM {schema_name}.{table_name}
         WHERE descriptor IN ({placeholders})
     """
-    df_existing_rows = pd.read_sql(query, conn, params=tuple(descriptors_to_check))
+    df_existing_rows = pd.read_sql(
+        query, conn, params=tuple(descriptors_to_check)
+    )
 
     if not df_existing_rows.empty:
         if output_dir:
@@ -113,7 +116,9 @@ def check_db_records_exist(
             output_file = os.path.join(output_dir, filename)
 
             df_existing_rows.to_csv(output_file, index=False)
-            print(f"⚠️ Some records already exist in the database. Matching rows saved to: '{output_file}'.")
+            print(
+                f"⚠️ Some records already exist in the database. Matching rows saved to: '{output_file}'."
+            )
         return df_existing_rows
     else:
         return pd.DataFrame()
@@ -200,7 +205,9 @@ def delete_db_records_by_global_ids(
         cur.execute(query, tuple(global_ids))
         conn.commit()
         deleted = cur.rowcount
-        print(f"🗑️  Deleted {deleted} existing record(s) from {schema_name}.{table_name}")
+        print(
+            f"🗑️  Deleted {deleted} existing record(s) from {schema_name}.{table_name}"
+        )
         return deleted
     finally:
         cur.close()
@@ -253,11 +260,15 @@ def save_df_to_db(
     """
     cols = list(df.columns)
     cols_quoted = [f'"{c}"' for c in cols]
-    pk_cols_quoted = [f'"{c}"' for c in primary_key_cols] if primary_key_cols else []
+    pk_cols_quoted = (
+        [f'"{c}"' for c in primary_key_cols] if primary_key_cols else []
+    )
 
     # Create table if it doesn't exist
     if not _table_exists(conn, schema_name, table_name):
-        print(f"🔨 Table {schema_name}.{table_name} does not exist. Creating...")
+        print(
+            f"🔨 Table {schema_name}.{table_name} does not exist. Creating..."
+        )
         col_defs = []
         for c in cols:
             pg_type = _get_pg_type(df[c].dtype)
@@ -288,7 +299,9 @@ def save_df_to_db(
             # Build UPDATE SET for all non-PK columns
             update_cols = [c for c in cols if c not in (primary_key_cols or [])]
             if update_cols:
-                set_clause = ", ".join([f'"{c}" = EXCLUDED."{c}"' for c in update_cols])
+                set_clause = ", ".join(
+                    [f'"{c}" = EXCLUDED."{c}"' for c in update_cols]
+                )
                 conflict_action = f"DO UPDATE SET {set_clause}"
             else:
                 conflict_action = "DO NOTHING"
@@ -309,7 +322,9 @@ def save_df_to_db(
     try:
         # Convert NaN → None so PostgreSQL inserts NULLs, not "nan" strings
         df_clean = df.astype(object).where(pd.notnull(df), None)
-        execute_values(cur, insert_sql, df_clean.to_records(index=False).tolist())
+        execute_values(
+            cur, insert_sql, df_clean.to_records(index=False).tolist()
+        )
         conn.commit()
         if cur.rowcount == 0:
             print(f"⚠️ No new rows inserted (all duplicates).")
@@ -322,8 +337,9 @@ def save_df_to_db(
 
 def save_dewrangle_ids(
     conn,
-    filepath: str,
     dewrangle_ids_config,
+    filepath: str = None,
+    df: pd.DataFrame = None,
     on_conflict: str = "nothing",
 ):
     """
@@ -332,7 +348,12 @@ def save_dewrangle_ids(
     Args:
         on_conflict: "nothing" (default) to skip duplicates, or "update" to overwrite.
     """
-    df = pd.read_csv(filepath, keep_default_na=False)
+
+    if df is None:
+        if filepath is None:
+            raise ValueError("Either 'filepath' or 'df' must be provided.")
+        else:
+            df = pd.read_csv(filepath, keep_default_na=False)
 
     if df.empty or df.shape[0] == 0:
         print("✅ Nothing new to update in db. Aborting")
@@ -342,7 +363,14 @@ def save_dewrangle_ids(
     table_name = dewrangle_ids_config["table"]
     primary_key_cols = dewrangle_ids_config["primary_key_cols"]
 
-    save_df_to_db(conn, df, schema_name, table_name, primary_key_cols, on_conflict=on_conflict)
+    save_df_to_db(
+        conn,
+        df,
+        schema_name,
+        table_name,
+        primary_key_cols,
+        on_conflict=on_conflict,
+    )
 
 
 def save_data_transfer_mapping(
@@ -369,7 +397,7 @@ def save_data_transfer_mapping(
     merged_df = df.merge(
         manifest_df,
         on=["fhirResourceType", "descriptor", "descriptorState"],
-        how="inner"
+        how="inner",
     )
     merged_df = merged_df[["study_id", "file_name", "dt_id", "global_id"]]
     save_df_to_db(conn, merged_df, schema_name, table_name, primary_key_cols)

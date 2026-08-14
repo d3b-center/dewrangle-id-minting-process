@@ -8,11 +8,13 @@ Subcommands:
   global-id-mint    Mint org-level global IDs from a manifest
   global-id-check   Query a specific global ID and download its record
   global-id-update  Update specific global ID records from a manifest
+  global-id-export  Export global IDs from Dewrangle to a database or CSV
   study-create      Create a Kids First study in Dewrangle
   cbtn-prepare      Validate CBTN data and prepare a minting manifest
 
 Usage examples:
   d3b-dewrangle source-intake --env qa --db d3b --source_type sample --manifest sample.csv
+  d3b-dewrangle global-id-export --env qa --db d3b --organization-id org-123 --output-dir ./exports
   d3b-dewrangle global-id-mint --env qa --db d3b --manifest manifest.csv --save-dt-record
   d3b-dewrangle global-id-check --env qa --id sd-xxxxxx
   d3b-dewrangle global-id-update --env qa --db d3b --manifest update.csv
@@ -45,10 +47,20 @@ def run_script(name: str, args: List[str]) -> None:
 
 def add_common_args(parser):
     """Add arguments shared by most subcommands."""
-    parser.add_argument("--env", choices=["prod", "qa"], required=True, help="Environment")
-    parser.add_argument("--db", choices=["d3b", "dcc"], required=True, help="Database type")
-    parser.add_argument("--organization-id", default=None, help="Override Dewrangle organization ID")
-    parser.add_argument("--output-dir", default=None, help="Directory for downloaded reports")
+    parser.add_argument(
+        "--env", choices=["prod", "qa"], required=True, help="Environment"
+    )
+    parser.add_argument(
+        "--db", choices=["d3b", "dcc"], required=True, help="Database type"
+    )
+    parser.add_argument(
+        "--organization-id",
+        default=None,
+        help="Override Dewrangle organization ID",
+    )
+    parser.add_argument(
+        "--output-dir", default=None, help="Directory for downloaded reports"
+    )
 
 
 def build_common_args(args) -> List[str]:
@@ -68,7 +80,13 @@ def cmd_source_intake(args):
     """source-intake → source_metadata_intake.py"""
     run_script(
         "source_metadata_intake.py",
-        [*build_common_args(args), "--source_type", args.type, "--manifest", args.manifest],
+        [
+            *build_common_args(args),
+            "--source_type",
+            args.type,
+            "--manifest",
+            args.manifest,
+        ],
     )
 
 
@@ -109,6 +127,33 @@ def cmd_global_id_update(args):
     """global-id-update → global_id_update.py"""
     script_args = [*build_common_args(args), "--manifest", args.manifest]
     run_script("global_id_update.py", script_args)
+
+
+# ----------------------------------------------------------------------------
+# global-id-export
+# ----------------------------------------------------------------------------
+def cmd_global_id_export(args):
+    """global-id-export → global_id_export.py"""
+    script_args = ["--env", args.env, "--db", args.db]
+    if args.output_dir:
+        script_args.extend(["--output-dir", args.output_dir])
+    if args.study_id:
+        script_args.extend(["--study-id", args.study_id])
+    if args.env:
+        script_args.extend(["--env", args.env])
+    if args.organization_id:
+        script_args.extend(["--organization-id", args.organization_id])
+    if args.verbose:
+        script_args.append("--verbose")
+    if args.download_csv_only:
+        script_args.append("--download_csv_only")
+    if args.null_handling:
+        script_args.extend(["--null_handling", args.null_handling])
+    if args.null_string:
+        script_args.extend(["--null_string", args.null_string])
+    if args.skip_non_study_global_ids:
+        script_args.append("--skip_non_study_global_ids")
+    run_script("global_id_export.py", script_args)
 
 
 # ---------------------------------------------------------------------------
@@ -190,12 +235,10 @@ def main():
             new empty table may result in accidentally duplicating descriptors
             if the table is created after some descriptors have already had
             global IDs minted.
-            """
+            """,
     )
     p_mint.add_argument(
-        "--verbose",
-        action="store_true",
-        help="If set, print verbose logs."
+        "--verbose", action="store_true", help="If set, print verbose logs."
     )
 
     # --- global-id-check ---
@@ -205,8 +248,14 @@ def main():
         description="Query Dewrangle for a specific globalId and save its details to a CSV.",
     )
     p_check.add_argument("--env", choices=["prod", "qa"], help="Environment")
-    p_check.add_argument("--organization-id", default=None, help="Override Dewrangle organization ID")
-    p_check.add_argument("--output-dir", default=None, help="Directory for downloaded reports")
+    p_check.add_argument(
+        "--organization-id",
+        default=None,
+        help="Override Dewrangle organization ID",
+    )
+    p_check.add_argument(
+        "--output-dir", default=None, help="Directory for downloaded reports"
+    )
     p_check.add_argument(
         "--id",
         required=True,
@@ -226,6 +275,51 @@ def main():
         help="Path to the global ID update manifest CSV (must include globalId, fhirResourceType, descriptor, descriptorState)",
     )
     # No --save-dt-record for global-id-update
+
+    # --- global-id-export ---
+    p_export = subparsers.add_parser(
+        "global-id-export",
+        help="Export global IDs from Dewrangle to a database or CSV",
+        description="Query Dewrangle for global IDs and save them to the DWH or a CSV file.",
+    )
+    add_common_args(p_export)
+    p_export.add_argument(
+        "--study-id",
+        default=None,
+        help="Dewrangle Study ID. If provided, only export global IDs for this study. This is a Global ID.",
+    )
+    p_export.add_argument(
+        "--verbose", action="store_true", help="If set, print verbose logs."
+    )
+    p_export.add_argument(
+        "--download_csv_only",
+        action="store_true",
+        help="If set, only download the CSV and skip saving to the database.",
+    )
+    p_export.add_argument(
+        "--null-handling",
+        choices=[
+            "error",
+            "skip",
+            "coerce_to_string",
+            "leave_as_null",
+        ],
+        default="coerce_to_string",
+        help="How to handle null values when saving to the database. "
+        "'error' will raise an error, 'skip' will skip rows with null descriptors, "
+        "'leave_as_null' will leave null values as null,"
+        "and 'coerce_to_string' will convert nulls to the string 'null'.",
+    )
+    p_export.add_argument(
+        "--null-string",
+        default="not in dewrangle",
+        help="The string to use for null descriptors when --null-handling is set to 'coerce_to_string'.",
+    )
+    p_export.add_argument(
+        "--skip-non-study-global-ids",
+        action="store_true",
+        help="If set, skip rows where the Global ID does not belong to a study",
+    )
 
     # --- study-create ---
     p_study = subparsers.add_parser(
@@ -265,6 +359,7 @@ def main():
         "global-id-mint": cmd_global_id_mint,
         "global-id-check": cmd_global_id_check,
         "global-id-update": cmd_global_id_update,
+        "global-id-export": cmd_global_id_export,
         "study-create": cmd_study_create,
         "cbtn-prepare": cmd_cbtn_prepare,
     }

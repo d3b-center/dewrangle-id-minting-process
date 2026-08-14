@@ -105,7 +105,9 @@ def exec_graphql_query(gql_query, variables=None, retries=2, backoff=2):
                 raise
 
             wait = backoff * attempt
-            print(f"⚠️ GraphQL error ({error_name}) on attempt {attempt}/{retries}. Retrying in {wait}s...")
+            print(
+                f"⚠️ GraphQL error ({error_name}) on attempt {attempt}/{retries}. Retrying in {wait}s..."
+            )
             time.sleep(wait)
 
             # Recreate client on disconnect to ensure a fresh connection
@@ -221,6 +223,7 @@ query MyQuery($organization_id: ID!, $filter: GlobalIdentifierFilter!) {
 }
 """)
 
+
 # ======================================
 # HTTP Utility
 # ======================================
@@ -280,27 +283,26 @@ def send_request(
 
         # Wait and retry
         if waited >= max_wait:
-            raise TimeoutError(
-                f"Response was empty after waiting {max_wait}s."
-            )
+            raise TimeoutError(f"Response was empty after waiting {max_wait}s.")
         print(f"⏳ Response empty. Waiting {poll_interval}s...")
         time.sleep(poll_interval)
         waited += poll_interval
+
 
 # ======================================
 # Dewrangle Helpers
 # ======================================
 def download_job_report(
-    job_id: str,
-    organization_id: str,
-    output_dir: Optional[str] = None
+    job_id: str, organization_id: str, output_dir: Optional[str] = None
 ) -> str:
     """
     Download Dewrangle ID report for a specific job.
     Returns path to saved CSV.
     """
     base_url = dewrangle_config["base_url"].rstrip("/")
-    endpoint_template = dewrangle_config["endpoints"]["job_rest"]["identifiers_report"]
+    endpoint_template = dewrangle_config["endpoints"]["job_rest"][
+        "identifiers_report"
+    ]
     endpoint = endpoint_template.format(org_id=organization_id, job_id=job_id)
     url = f"{base_url}/{endpoint}"
 
@@ -321,7 +323,7 @@ def download_job_report(
             headers=headers,
             wait_for_content=True,
             poll_interval=5,
-            max_wait=30
+            max_wait=30,
         )
     except TimeoutError as e:
         raise TimeoutError(
@@ -337,16 +339,27 @@ def download_job_report(
     return filepath
 
 
-def fetch_org_report_df(
+def fetch_globalid_report_df(
     organization_id: str,
+    study_id: Optional[str] = None,
 ) -> pd.DataFrame:
     """
     Download the Dewrangle organization global-identifiers report via REST
     and return it as a DataFrame (without saving the full report to disk).
     """
     base_url = dewrangle_config["base_url"].rstrip("/")
-    endpoint_template = dewrangle_config["endpoints"]["org_rest"]["identifiers_report"]
-    endpoint = endpoint_template.format(org_id=organization_id)
+    if study_id:
+        endpoint_template = dewrangle_config["endpoints"]["org_rest"][
+            "identifiers_report_study"
+        ]
+        endpoint = endpoint_template.format(
+            org_id=organization_id, study_id=study_id
+        )
+    else:
+        endpoint_template = dewrangle_config["endpoints"]["org_rest"][
+            "identifiers_report"
+        ]
+        endpoint = endpoint_template.format(org_id=organization_id)
     url = f"{base_url}/{endpoint}"
 
     print(f"🌐 Dewrangle organization global-identifiers report URL: {url}")
@@ -359,7 +372,7 @@ def fetch_org_report_df(
             headers=headers,
             wait_for_content=True,
             poll_interval=5,
-            max_wait=60
+            max_wait=60,
         )
     except TimeoutError as e:
         raise TimeoutError(
@@ -401,18 +414,22 @@ def _parse_global_identifier_edges(gi_edges: List[dict]) -> List[dict]:
             gi_ref = desc_node.get("globalIdentifier") or {}
             gi_ref_created_by = gi_ref.get("createdByUser") or {}
 
-            rows.append({
-                "globalId": gi_global_id,
-                "studyGlobalId": study.get("globalId"),
-                "studyName": study.get("name"),
-                "fhirResourceType": fhir_type,
-                "descriptor": desc_node.get("descriptor"),
-                "descriptorState": _normalize_descriptor_state(desc_node.get("event")),
-                "globalIdCreatedAt": gi_ref.get("createdAt"),
-                "globalIdCreatedBy": gi_ref_created_by.get("email"),
-                "descriptorCreatedAt": desc_node.get("createdAt"),
-                "descriptorCreatedBy": desc_created_by.get("email"),
-            })
+            rows.append(
+                {
+                    "globalId": gi_global_id,
+                    "studyGlobalId": study.get("globalId"),
+                    "studyName": study.get("name"),
+                    "fhirResourceType": fhir_type,
+                    "descriptor": desc_node.get("descriptor"),
+                    "descriptorState": _normalize_descriptor_state(
+                        desc_node.get("event")
+                    ),
+                    "globalIdCreatedAt": gi_ref.get("createdAt"),
+                    "globalIdCreatedBy": gi_ref_created_by.get("email"),
+                    "descriptorCreatedAt": desc_node.get("createdAt"),
+                    "descriptorCreatedBy": desc_created_by.get("email"),
+                }
+            )
     return rows
 
 
@@ -448,7 +465,7 @@ async def _download_filtered_org_global_identifiers_async(
     Returns flattened descriptor rows.
     """
     batches = [
-        target_ids[i * batch_size:(i + 1) * batch_size]
+        target_ids[i * batch_size : (i + 1) * batch_size]
         for i in range((len(target_ids) + batch_size - 1) // batch_size)
     ]
 
@@ -462,6 +479,7 @@ async def _download_filtered_org_global_identifiers_async(
     rows = []
 
     async with client as session:
+
         async def fetch_limited(batch):
             async with semaphore:
                 print(f"🚀 Querying batch of {len(batch)} globalIds...")
@@ -471,7 +489,9 @@ async def _download_filtered_org_global_identifiers_async(
                 print(f"✅ Completed batch of {len(batch)} globalIds.")
                 return gi_edges
 
-        results = await asyncio.gather(*[fetch_limited(batch) for batch in batches])
+        results = await asyncio.gather(
+            *[fetch_limited(batch) for batch in batches]
+        )
         for gi_edges in results:
             rows.extend(_parse_global_identifier_edges(gi_edges))
 
@@ -546,7 +566,9 @@ def download_filtered_org_global_identifiers(
     if len(target_ids) == 1:
         filename = f"dewrangle-global-id-{target_ids[0]}-{timestamp}.csv"
     else:
-        filename = f"dewrangle-global-ids-{len(target_ids)}-filtered-{timestamp}.csv"
+        filename = (
+            f"dewrangle-global-ids-{len(target_ids)}-filtered-{timestamp}.csv"
+        )
 
     filepath = os.path.join(output_dir, filename)
     df.to_csv(filepath, index=False)
@@ -700,7 +722,9 @@ def update_org_global_ids(
     file_id = upload_org_file(organization_id, manifest_path)
     job_id = create_org_global_ids(organization_id, file_id)
     try:
-        report_path = download_job_report(job_id, organization_id, output_dir=output_dir)
+        report_path = download_job_report(
+            job_id, organization_id, output_dir=output_dir
+        )
     except TimeoutError as e:
         if raise_on_empty_report:
             raise
@@ -713,8 +737,7 @@ def update_org_global_ids(
 
 
 def download_created_study_report(
-    study_result: dict,
-    output_dir: Optional[str] = None
+    study_result: dict, output_dir: Optional[str] = None
 ) -> str:
     """
     Download Dewrangle ID report for a newly created study.
@@ -726,7 +749,9 @@ def download_created_study_report(
     study_global_id = study_result["globalId"]
 
     base_url = dewrangle_config["base_url"].rstrip("/")
-    endpoint_template = dewrangle_config["endpoints"]["study_rest"]["identifiers_report"]
+    endpoint_template = dewrangle_config["endpoints"]["study_rest"][
+        "identifiers_report"
+    ]
     endpoint = endpoint_template.format(study_node_id=study_node_id)
     url = f"{base_url}/{endpoint}"
 
@@ -744,11 +769,11 @@ def download_created_study_report(
         headers=headers,
         wait_for_content=True,
         poll_interval=5,
-        max_wait=180
+        max_wait=180,
     )
 
     all_df = pd.read_csv(StringIO(resp.text))
-    df = all_df[all_df['globalId'] == study_global_id]
+    df = all_df[all_df["globalId"] == study_global_id]
     global_idx = df.columns.get_loc("globalId") + 1
     df.insert(global_idx, "studyGlobalId", study_global_id)
     df.insert(global_idx + 1, "studyName", study_name)
@@ -788,7 +813,9 @@ def find_study_by_name(
         try:
             resp = exec_graphql_query(GET_ORGANIZATION_STUDIES, variables)
         except Exception as e:
-            logger.warning(f"⚠️ Failed to query Dewrangle for existing studies: {e}")
+            logger.warning(
+                f"⚠️ Failed to query Dewrangle for existing studies: {e}"
+            )
             return None
 
         node_data = resp.get("node")
@@ -802,7 +829,9 @@ def find_study_by_name(
         for edge in edges:
             study = edge.get("node")
             if study and study.get("name") == study_name:
-                print(f"🔍 Found existing study '{study_name}' in Dewrangle (globalId: {study['globalId']}) on page {page}")
+                print(
+                    f"🔍 Found existing study '{study_name}' in Dewrangle (globalId: {study['globalId']}) on page {page}"
+                )
                 return study
 
         if not page_info.get("hasNextPage"):
@@ -828,13 +857,12 @@ def create_kf_study(
         Study result dict with keys: id, name, globalId
     """
     variables = {
-        "input": {
-            "name": study_name,
-            "organizationId": organization_id
-        }
+        "input": {"name": study_name, "organizationId": organization_id}
     }
 
     resp = exec_graphql_query(CREATE_KF_STUDY, variables)
     result = resp["studyCreate"]["study"]
-    print(f"✅ Created study '{result['name']}' with globalId {result['globalId']}")
+    print(
+        f"✅ Created study '{result['name']}' with globalId {result['globalId']}"
+    )
     return result

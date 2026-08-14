@@ -37,11 +37,10 @@ from src.db_utils import (
 from psycopg2.errors import UndefinedTable
 import logging
 
-
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
+    datefmt="%Y-%m-%d %H:%M:%S",
 )
 
 logger = logging.getLogger(__name__)
@@ -57,7 +56,7 @@ def parse_args():
     parser.add_argument(
         "--env",
         choices=["prod", "qa"],
-        help="Environment to use (prod or qa). Determines default schema and organization_id if not set explicitly."
+        help="Environment to use (prod or qa). Determines default schema and organization_id if not set explicitly.",
     )
     parser.add_argument(
         "--db",
@@ -68,22 +67,20 @@ def parse_args():
     parser.add_argument(
         "--organization_id",
         default=None,
-        help="Dewrangle Organization ID. Overrides --env default if provided."
+        help="Dewrangle Organization ID. Overrides --env default if provided.",
     )
     parser.add_argument(
-        "--manifest",
-        required=True,
-        help="Path to input manifest CSV file."
+        "--manifest", required=True, help="Path to input manifest CSV file."
     )
     parser.add_argument(
         "--save-dt-record",
         action="store_true",
-        help="If set, save data transfer mapping record to DWH."
+        help="If set, save data transfer mapping record to DWH.",
     )
     parser.add_argument(
         "--output_dir",
         default=None,
-        help="Optional output directory for downloaded CSV"
+        help="Optional output directory for downloaded CSV",
     )
     parser.add_argument(
         "--create-dewrangle-ids-table",
@@ -95,12 +92,10 @@ def parse_args():
             new empty table may result in accidentally duplicating descriptors
             if the table is created after some descriptors have already had
             global IDs minted.
-            """
+            """,
     )
     parser.add_argument(
-        "--verbose",
-        action="store_true",
-        help="If set, print verbose logs."
+        "--verbose", action="store_true", help="If set, print verbose logs."
     )
 
     args = parser.parse_args()
@@ -109,13 +104,21 @@ def parse_args():
     if args.organization_id:
         org_message = f"🛠️ Using custom organization_id: {args.organization_id}"
     elif args.env == "prod":
-        args.organization_id = "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ="
-        org_message = "🚀 Using Kids First prod Dewrangle organization for ID minting"
+        args.organization_id = (
+            "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ="
+        )
+        org_message = (
+            "🚀 Using Kids First prod Dewrangle organization for ID minting"
+        )
     elif args.env == "qa":
-        args.organization_id = "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
+        args.organization_id = (
+            "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
+        )
         org_message = "🧪 Using test-dewrangle-ids organization for ID minting"
     else:
-        parser.error("Either --organization_id must be set or --env must be 'prod' or 'qa'.")
+        parser.error(
+            "Either --organization_id must be set or --env must be 'prod' or 'qa'."
+        )
 
     args.org_message = org_message
     return args
@@ -140,17 +143,27 @@ def main():
     # --- Step 1: Read and validate manifest ---
     manifest_df = pd.read_csv(manifest_path)
     required_columns = ["fhirResourceType", "descriptor", "descriptorState"]
-    missing_columns = [col for col in required_columns if col not in manifest_df.columns]
+    missing_columns = [
+        col for col in required_columns if col not in manifest_df.columns
+    ]
     if missing_columns:
-        raise ValueError(f"Manifest is missing required columns: {missing_columns}")
+        raise ValueError(
+            f"Manifest is missing required columns: {missing_columns}"
+        )
 
     if args.save_dt_record:
         plus_columns = ["study_id", "file_name", "dt_id"]
-        missing = [col for col in plus_columns if col not in manifest_df.columns]
+        missing = [
+            col for col in plus_columns if col not in manifest_df.columns
+        ]
         if missing:
-            raise ValueError(f"Manifest missing columns for saving DT records: {missing}")
+            raise ValueError(
+                f"Manifest missing columns for saving DT records: {missing}"
+            )
 
-    logger.info("✅ Manifest read successfully with %d rows.", manifest_df.shape[0])
+    logger.info(
+        "✅ Manifest read successfully with %d rows.", manifest_df.shape[0]
+    )
 
     # --- Step 2: Connect to DB ---
     conn = connect_to_database(
@@ -165,7 +178,13 @@ def main():
         dewrangle_ids_config = db_config[env_type]["dewrangle_ids"]
         # --- Step 3: Check if descriptors already exist ---
         try:
-            logger.debug("Checking for existing descriptors in %s.%s..." % (dewrangle_ids_config["schema"], dewrangle_ids_config["table"]))
+            logger.debug(
+                "Checking for existing descriptors in %s.%s..."
+                % (
+                    dewrangle_ids_config["schema"],
+                    dewrangle_ids_config["table"],
+                )
+            )
             existing_rows = check_db_records_exist(
                 conn,
                 schema_name=dewrangle_ids_config["schema"],
@@ -178,26 +197,36 @@ def main():
                 if args.create_dewrangle_ids_table:
                     logger.warning("⚠️ Dewrangle IDs table does not exist.")
                     conn.rollback()  # Rollback the transaction to clear the error state
-                    existing_rows = pd.DataFrame()  # No existing rows since table does not exist
+                    existing_rows = (
+                        pd.DataFrame()
+                    )  # No existing rows since table does not exist
                 else:
-                    logger.exception("❌ Dewrangle IDs table does not exist. Use --create-dewrangle-ids-table to create it, or ensure the table exists before running this script.", exc_info=True)
+                    logger.exception(
+                        "❌ Dewrangle IDs table does not exist. Use --create-dewrangle-ids-table to create it, or ensure the table exists before running this script.",
+                        exc_info=True,
+                    )
                     sys.exit(1)
             else:
-                logger.exception("❌ An unexpected DatabaseError occurred", exc_info=True)
+                logger.exception(
+                    "❌ An unexpected DatabaseError occurred", exc_info=True
+                )
         except Exception as e:
-            logger.exception("❌ Error checking for existing descriptors: %s", e)
+            logger.exception(
+                "❌ Error checking for existing descriptors: %s", e
+            )
             sys.exit(1)
 
         if not existing_rows.empty:
-            logger.error("❌ Aborting to avoid duplicates. Please remove the duplicate descriptors and try again.")
+            logger.error(
+                "❌ Aborting to avoid duplicates. Please remove the duplicate descriptors and try again."
+            )
             sys.exit(1)
         # --- Step 4: Upload file manifest ---
         file_id = upload_org_file(args.organization_id, manifest_path)
 
         # --- Step 5: Create org global IDs ---
         job_id = create_org_global_ids(
-            organization_id=args.organization_id,
-            file_id=file_id
+            organization_id=args.organization_id, file_id=file_id
         )
 
         # --- Step 6: Download job global IDs report ---
@@ -209,13 +238,17 @@ def main():
 
         # --- Step 7: Save dewrangle IDs to warehouse ---
         logger.info("🗂️ Saving dewrangle IDs report to DB...")
-        save_dewrangle_ids(conn, filepath, dewrangle_ids_config)
+        save_dewrangle_ids(conn, dewrangle_ids_config, filepath)
 
         # --- Step 8: Optionally save Data Transfer mapping ---
         if args.save_dt_record:
             logger.info("🗂️ Saving Data Transfer Records to DB...")
-            data_transfer_mapping_config = db_config[env_type]["data_transfer_file_mapping"]
-            save_data_transfer_mapping(conn, filepath, manifest_df, data_transfer_mapping_config)
+            data_transfer_mapping_config = db_config[env_type][
+                "data_transfer_file_mapping"
+            ]
+            save_data_transfer_mapping(
+                conn, filepath, manifest_df, data_transfer_mapping_config
+            )
     except Exception as e:
         logger.exception("❌ Error occurred: %s", e)
         sys.exit(1)
