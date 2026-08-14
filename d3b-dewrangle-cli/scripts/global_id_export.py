@@ -22,6 +22,7 @@ from src.db_utils import (
     save_dewrangle_ids,
 )
 from src.dewrangle_client import fetch_globalid_report_df
+from src.env_config import config
 
 logging.basicConfig(
     level=logging.INFO,
@@ -104,14 +105,14 @@ def parse_args():
     if args.organization_id:
         org_message = f"🛠️ Using organization_id: {args.organization_id}"
     elif args.env == "prod":
-        args.organization_id = (
-            "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ="
-        )
+        args.organization_id = config["dewrangle"]["organizations"][
+            "kids_first"
+        ]["id"]
         org_message = "🚀 Using Kids First prod Dewrangle organization"
     elif args.env == "qa":
-        args.organization_id = (
-            "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
-        )
+        args.organization_id = config["dewrangle"]["organizations"][
+            "test-dewrangle-ids"
+        ]["id"]
         org_message = "🧪 Using test-dewrangle-ids organization"
     else:
         parser.error(

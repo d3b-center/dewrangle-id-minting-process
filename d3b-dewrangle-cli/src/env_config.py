@@ -23,6 +23,17 @@ config = {
                 "identifiers_report": "/api/rest/studies/{study_node_id}/global-descriptors",
             },
         },
+        "organizations": {
+            "kids_first": {
+                "id": "T3JnYW5pemF0aW9uOmNsZHN4MzRrbjAwMTRnMGVzY3JndzUzYWQ=",
+            },
+            "include": {
+                "id": "T3JnYW5pemF0aW9uOmNsZWhibTF4ZjAwZTdpY2VzZjI0d2tlNHk=",
+            },
+            "test-dewrangle-ids": {
+                "id": "T3JnYW5pemF0aW9uOmNta2x6ejhleDAwMWxqejAxNHQyOWl1ZXA="
+            },
+        },
     },
     "db": {
         "d3b_warehouse": {
