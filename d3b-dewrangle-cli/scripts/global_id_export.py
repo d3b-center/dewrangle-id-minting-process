@@ -102,6 +102,7 @@ def parse_args():
 
     args = parser.parse_args()
 
+    # Generate the org message
     if args.organization_id:
         org_message = f"🛠️ Using organization_id: {args.organization_id}"
     elif args.env == "prod":
@@ -119,12 +120,32 @@ def parse_args():
             "Either --organization_id must be set or --env must be 'prod' or 'qa'."
         )
 
+    # Generate the null handling message
+    if args.null_handling == "error":
+        null_handling_message = (
+            "Null handling: error (will raise an error if nulls are found)"
+        )
+    elif args.null_handling == "skip":
+        null_handling_message = (
+            "Null handling: skip (will skip rows with null descriptors)"
+        )
+    elif args.null_handling == "coerce_to_string":
+        null_handling_message = (
+            "Null handling: coerce_to_string (will convert nulls to '%s')"
+            % args.null_string
+        )
+    elif args.null_handling == "leave_as_null":
+        null_handling_message = (
+            "Null handling: leave_as_null (will leave null values as null)"
+        )
+
     if args.download_csv_only and not args.output_dir:
         parser.error(
             "If --download_csv_only is set, --output-dir must be provided."
         )
 
     args.org_message = org_message
+    args.null_handling_message = null_handling_message
     return args
 
 
@@ -135,24 +156,7 @@ def main():
     args = parse_args()
     logger.setLevel(logging.DEBUG if args.verbose else logging.INFO)
     logger.info(args.org_message)
-
-    if args.null_handling == "error":
-        logger.info(
-            "Null handling: error (will raise an error if nulls are found)"
-        )
-    elif args.null_handling == "skip":
-        logger.info(
-            "Null handling: skip (will skip rows with null descriptors)"
-        )
-    elif args.null_handling == "coerce_to_string":
-        logger.info(
-            "Null handling: coerce_to_string (will convert nulls to '%s')"
-            % args.null_string
-        )
-    elif args.null_handling == "leave_as_null":
-        logger.info(
-            "Null handling: leave_as_null (will leave null values as null)"
-        )
+    logger.info(args.null_handling_message)
 
     if args.skip_non_study_global_ids:
         logger.info(
