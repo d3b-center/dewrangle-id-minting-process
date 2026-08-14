@@ -286,7 +286,7 @@ def main():
     p_export.add_argument(
         "--study-id",
         default=None,
-        help="Dewrangle Study ID. If provided, only export global IDs for this study.",
+        help="Dewrangle Study ID. If provided, only export global IDs for this study. This is a Global ID.",
     )
     p_export.add_argument(
         "--verbose", action="store_true", help="If set, print verbose logs."

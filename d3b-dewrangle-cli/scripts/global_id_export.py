@@ -54,12 +54,12 @@ def parse_args():
         "--organization-id",
         default=None,
         required=True,
-        help="Dewrangle Organization ID. Overrides --env default if provided.",
+        help="Dewrangle Organization ID. Overrides --env default if provided. This is not a Global ID.",
     )
     parser.add_argument(
         "--study-id",
         default=None,
-        help="Dewrangle Study ID. Overrides --env default if provided.",
+        help="Dewrangle Study ID. Overrides --env default if provided. This is a Global ID.",
     )
     parser.add_argument(
         "--output-dir",
