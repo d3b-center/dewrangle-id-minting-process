@@ -276,6 +276,10 @@ def send_request(
                     f"❌ Problem sending {method} request\n"
                     f"{str(e)}\nargs: {args}\nkwargs: {pformat(kwargs)}\n{body}"
                 ) from e
+        except Exception as e:
+            message = f"❌ Problem sending {method} request: {e}\nargs: {args}\nkwargs: {pformat(kwargs)}"
+            logger.error(message, exc_info=True)
+            raise RuntimeError(message) from e
 
         # If polling not required or content exists, return response
         if not wait_for_content or resp.text.strip():
@@ -362,7 +366,9 @@ def fetch_globalid_report_df(
         endpoint = endpoint_template.format(org_id=organization_id)
     url = f"{base_url}/{endpoint}"
 
-    print(f"🌐 Dewrangle organization global-identifiers report URL: {url}")
+    logger.info(
+        "🌐 Dewrangle organization global-identifiers report URL: %s", url
+    )
 
     headers = {"x-api-key": DEWRANGLE_TOKEN, "content-type": CSV_CONTENT_TYPE}
     try:
