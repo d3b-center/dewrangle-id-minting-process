@@ -380,8 +380,18 @@ def fetch_globalid_report_df(
             f"   Report URL: {url}\n"
             f"   Please verify the organization has identifiers and try again."
         ) from e
+    except Exception as e:
+        raise RuntimeError(
+            f"❌ Failed to fetch Dewrangle organization global-identifiers report: {e}"
+        ) from e
 
-    df = pd.read_csv(StringIO(resp.text))
+    try:
+        df = pd.read_csv(StringIO(resp.text))
+    except Exception as e:
+        raise RuntimeError(
+            f"❌ Failed to parse Dewrangle organization global-identifiers report CSV into : {e}"
+        ) from e
+
     return df
 
 
