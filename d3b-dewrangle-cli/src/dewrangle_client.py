@@ -375,22 +375,32 @@ def fetch_globalid_report_df(
             max_wait=60,
         )
     except TimeoutError as e:
+        logger.exception(
+            f"🚫 The Dewrangle organization global-identifiers report is empty after waiting 60s.",
+            exc_info=True,
+        )
         raise TimeoutError(
             f"🚫 The Dewrangle organization global-identifiers report is empty after waiting 60s.\n"
             f"   Report URL: {url}\n"
             f"   Please verify the organization has identifiers and try again."
         ) from e
     except Exception as e:
-        raise RuntimeError(
-            f"❌ Failed to fetch Dewrangle organization global-identifiers report: {e}"
-        ) from e
+        message = "❌ Failed to fetch Dewrangle organization global-identifiers report"
+        logger.error(
+            message,
+            exc_info=True,
+        )
+        raise RuntimeError(f"{message}: {e}") from e
 
     try:
         df = pd.read_csv(StringIO(resp.text))
     except Exception as e:
-        raise RuntimeError(
-            f"❌ Failed to parse Dewrangle organization global-identifiers report CSV into : {e}"
-        ) from e
+        message = "❌ Failed to parse Dewrangle organization global-identifiers report CSV into a DataFrame"
+        logger.error(
+            message,
+            exc_info=True,
+        )
+        raise RuntimeError(f"{message}: {e}") from e
 
     return df
 
